@@ -5,7 +5,7 @@ deployment:
     - /bin/mkdir -p $DEPLOYPATH
 
     # build React (Vite) מתוך התיקייה frontend
-    - cd /home/<CPANEL_USER>/repositories/VolunTrack/frontend
+    - cd /home/leviid>/repositories/VolunTrack/frontend
     - /usr/bin/npm ci || /usr/bin/npm install
     - /usr/bin/npm run build
 
