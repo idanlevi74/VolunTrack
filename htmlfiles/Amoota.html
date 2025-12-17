@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VolunTrack – אזור אישי עמותה</title>
+
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+
+      --primary:#6d28d9;    /* פס סגול */
+      --primary2:#a78bfa;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      --shadow2: 0 10px 24px rgba(15, 23, 42, 0.06);
+
+      --radius: 18px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Heebo", "Assistant", Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page{
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 22px 18px 40px;
+    }
+
+    /* header */
+    .top{
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .hello h1{
+      margin: 0;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.4px;
+    }
+    .hello p{
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    /* layout grid */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 360px; /* מרכז + צד ימין */
+      gap: 18px;
+      align-items:start;
+    }
+
+    /* tabs bar */
+    .tabs{
+      background: var(--card);
+      border: 1px solid rgba(15,23,42,.08);
+      border-radius: 14px;
+      box-shadow: var(--shadow2);
+      padding: 10px;
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab{
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-weight: 850;
+      color: #475569;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .tab:hover{ background: rgba(15,23,42,.04); }
+    .tab.active{
+      background: rgba(109,40,217,.12);
+      color: #4c1d95;
+    }
+    .tab .icon{
+      width: 18px;
+      height: 18px;
+      opacity: .85;
+    }
+
+    /* main card (empty state like image) */
+    .main-card{
+      margin-top: 14px;
+      background: var(--card);
+      border: 1px solid rgba(15,23,42,.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 26px 18px;
+      min-height: 320px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .empty{
+      text-align:center;
+      max-width: 520px;
+      padding: 8px 10px;
+    }
+
+    .heart{
+      width: 62px;
+      height: 62px;
+      margin: 0 auto 10px;
+      display:grid;
+      place-items:center;
+    }
+    .empty h2{
+      margin: 0;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.2px;
+    }
+    .empty p{
+      margin: 6px 0 16px;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .btn{
+      height: 42px;
+      padding: 0 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.12);
+      background: #fff;
+      font-weight: 900;
+      cursor:pointer;
+      box-shadow: 0 10px 20px rgba(15,23,42,.05);
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    /* side cards */
+    .side{
+      display:flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid rgba(15,23,42,.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+    }
+
+    .card-topline{
+      height: 6px;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--primary2) 100%);
+    }
+
+    .card-body{
+      padding: 18px;
+    }
+
+    /* rating card */
+    .score{
+      display:grid;
+      gap: 14px;
+      text-align:center;
+    }
+    .score .circle{
+      width: 92px;
+      height: 92px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(109,40,217,.20), rgba(109,40,217,.06));
+      border: 1px solid rgba(109,40,217,.12);
+      display:grid;
+      place-items:center;
+      margin: 0 auto;
+      font-size: 28px;
+      font-weight: 950;
+      color: #4c1d95;
+    }
+    .score h3{
+      margin: 0;
+      font-size: 18px;
+      font-weight: 950;
+    }
+    .score .sub{
+      margin-top: -8px;
+      color: var(--muted);
+      font-weight: 650;
+      font-size: 13px;
+    }
+
+    .divider{
+      height: 1px;
+      background: var(--line);
+      margin: 8px 0 0;
+    }
+
+    .score-stats{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .stat{
+      text-align:center;
+    }
+    .stat .num{
+      font-weight: 950;
+      font-size: 22px;
+      margin: 0;
+    }
+    .stat .lbl{
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    /* badges card */
+    .title{
+      margin: 0;
+      font-size: 18px;
+      font-weight: 950;
+    }
+    .muted{
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-weight: 650;
+      line-height: 1.45;
+    }
+
+    /* responsive */
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="top">
+      <div></div>
+      <div class="hello">
+        <h1>שלום, אדיר משה</h1>
+        <p>ברוכים הבאים לאזור האישי שלך</p>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- CENTER -->
+      <section>
+        <div class="tabs" role="tablist" aria-label="ניווט אזור אישי">
+          <button class="tab" data-tab="activities" role="tab">
+            <span class="icon">⚡</span> פעילויות קרובות
+          </button>
+          <button class="tab" data-tab="history" role="tab">
+            <span class="icon">🕘</span> היסטוריה
+          </button>
+          <button class="tab active" data-tab="donations" role="tab" aria-selected="true">
+            <span class="icon">❤</span> תרומות
+          </button>
+          <button class="tab" data-tab="manager" role="tab">
+            <span class="icon">🧾</span> אזור מנהל עמותה
+          </button>
+        </div>
+
+        <div class="main-card" id="mainCard">
+          <div class="empty" id="donationsView">
+            <div class="heart" aria-hidden="true">
+              <!-- heart outline svg -->
+              <svg width="58" height="58" viewBox="0 0 24 24" fill="none">
+                <path d="M12 21s-7-4.6-9.3-8.5C.9 9.2 2.5 6 5.9 6c1.7 0 3 .9 3.8 2
+                         .8-1.1 2.1-2 3.8-2 3.4 0 5 3.2 3.2 6.5C19 16.4 12 21 12 21Z"
+                      stroke="#ec4899" stroke-width="1.6" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h2>היסטוריית תרומות</h2>
+            <p>עקבו אחר התרומות הכספיות שלכם לעמותות</p>
+            <button class="btn">הפק דוח שנתי</button>
+          </div>
+
+          <div class="empty" id="otherView" style="display:none;">
+            <h2 style="margin:0;font-weight:950;">אין מידע להצגה</h2>
+            <p style="margin:6px 0 0;color:var(--muted);font-weight:650;">
+              הדמו מציג תבנית UI. אפשר לחבר לדאטה אמיתי מהמערכת.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT SIDE -->
+      <aside class="side">
+        <!-- rating -->
+        <div class="card">
+          <div class="card-topline"></div>
+          <div class="card-body">
+            <div class="score">
+              <div class="circle">100</div>
+              <div>
+                <h3>דירוג אמינות</h3>
+                <div class="sub">מצוין! המשיכו כך</div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="score-stats">
+                <div class="stat">
+                  <p class="num">0</p>
+                  <p class="lbl">שעות</p>
+                </div>
+                <div class="stat">
+                  <p class="num">0</p>
+                  <p class="lbl">פעילויות</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- badges -->
+        <div class="card">
+          <div class="card-body">
+            <h3 class="title">התגים שלי</h3>
+            <p class="muted">
+              טרם נצברו תגים. הירשמו לפעילות ראשונה!
+            </p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // טאבים (דמו)
+    const tabs = document.querySelectorAll(".tab");
+    const donationsView = document.getElementById("donationsView");
+    const otherView = document.getElementById("otherView");
+
+    tabs.forEach(t => {
+      t.addEventListener("click", () => {
+        tabs.forEach(x => {
+          x.classList.remove("active");
+          x.setAttribute("aria-selected","false");
+        });
+        t.classList.add("active");
+        t.setAttribute("aria-selected","true");
+
+        const id = t.dataset.tab;
+        if(id === "donations"){
+          donationsView.style.display = "";
+          otherView.style.display = "none";
+        }else{
+          donationsView.style.display = "none";
+          otherView.style.display = "";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

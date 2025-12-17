@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VolunTrack – Sign in</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --field:#f8fafc;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+      --radius: 22px;
+      --btn:#0b1220;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display:grid;
+      place-items:center;
+      padding: 28px 14px;
+    }
+
+    .wrap{
+      width: min(520px, 100%);
+      text-align:center;
+    }
+
+    h1{
+      margin: 0 0 8px;
+      font-size: clamp(34px, 5vw, 54px);
+      font-weight: 900;
+      letter-spacing: -0.8px;
+    }
+
+    .subtitle{
+      margin: 0 0 28px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #7b8796;
+    }
+
+    .card{
+      width: 100%;
+      padding: 0;
+    }
+
+    .google-btn{
+      width: 100%;
+      height: 64px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: #fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 14px;
+      font-size: 22px;
+      font-weight: 800;
+      color: #233042;
+      cursor:pointer;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+      transition: transform .08s ease, box-shadow .12s ease;
+    }
+    .google-btn:hover{ box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08); }
+    .google-btn:active{ transform: translateY(1px); }
+
+    .google-mark{
+      width: 30px;
+      height: 30px;
+      display:inline-block;
+    }
+
+    .divider{
+      margin: 26px 0 18px;
+      display:flex;
+      align-items:center;
+      gap: 14px;
+      color: #a1a9b5;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+    }
+    .divider::before,
+    .divider::after{
+      content:"";
+      height: 1px;
+      background: var(--line);
+      flex:1;
+    }
+
+    .label{
+      text-align:center;
+      font-size: 20px;
+      font-weight: 900;
+      margin: 16px 0 10px;
+      color:#1f2a3a;
+    }
+
+    .field{
+      width: 100%;
+      height: 66px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--field);
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      padding: 0 18px;
+    }
+    .icon{
+      width: 28px;
+      height: 28px;
+      color:#9aa4b2;
+      flex: 0 0 auto;
+    }
+    input{
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 22px;
+      font-weight: 750;
+      color:#263244;
+    }
+    input::placeholder{ color:#9aa4b2; font-weight: 750; }
+
+    .submit{
+      margin-top: 22px;
+      width: 100%;
+      height: 74px;
+      border-radius: 22px;
+      border: none;
+      cursor:pointer;
+      background: radial-gradient(800px 200px at 50% 0%, rgba(255,255,255,0.16), transparent 55%),
+                  linear-gradient(180deg, #0e172a 0%, #070b14 100%);
+      color:#fff;
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: var(--shadow);
+      transition: transform .08s ease, filter .12s ease;
+    }
+    .submit:hover{ filter: brightness(1.03); }
+    .submit:active{ transform: translateY(1px); }
+
+    .bottom{
+      margin-top: 18px;
+      display:flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 800;
+      color:#7b8796;
+      flex-wrap: wrap;
+    }
+    .bottom a{
+      color:#0f172a;
+      font-weight: 900;
+      text-decoration: none;
+    }
+    .bottom a:hover{ text-decoration: underline; }
+
+    /* אסתטיקה קטנה למובייל */
+    @media (max-width: 420px){
+      .google-btn{ font-size: 18px; height: 58px; }
+      .field{ height: 60px; }
+      input{ font-size: 18px; }
+      .submit{ height: 66px; font-size: 22px; }
+      .bottom{ font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <h1>Welcome to VolunTrack</h1>
+    <p class="subtitle">Sign in to continue</p>
+
+    <section class="card">
+      <button class="google-btn" type="button" id="googleBtn">
+        <!-- Google "G" SVG -->
+        <svg class="google-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.2 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/>
+          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.2 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.2 6.1 29.3 4 24 4c-7.7 0-14.4 3.9-18.3 10.7z"/>
+          <path fill="#4CAF50" d="M24 44c5.1 0 9.9-2 13.4-5.2l-6.2-5.2C29.1 35.4 26.7 36 24 36c-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.9 40.2 16.5 44 24 44z"/>
+          <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.0 2.7-2.9 4.9-5.3 6.4l.0-.0 6.2 5.2C39.8 36.2 44 31 44 24c0-1.2-.1-2.3-.4-3.5z"/>
+        </svg>
+
+        Continue with Google
+      </button>
+
+      <div class="divider">OR</div>
+
+      <div class="label">Email</div>
+      <div class="field">
+        <!-- mail icon -->
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+          <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M6.8 7.2 12 11l5.2-3.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <input type="email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+
+      <div class="label" style="margin-top:22px;">Password</div>
+      <div class="field">
+        <!-- lock icon -->
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+          <path d="M7.5 11V8.5A4.5 4.5 0 0 1 12 4a4.5 4.5 0 0 1 4.5 4.5V11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M6.5 11h11A2.5 2.5 0 0 1 20 13.5v4A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-4A2.5 2.5 0 0 1 6.5 11Z" stroke="currentColor" stroke-width="1.8"/>
+        </svg>
+        <input type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+
+      <button class="submit" id="signInBtn">Sign in</button>
+
+      <div class="bottom">
+        <div><a href="#">Forgot password?</a></div>
+        <div>Need an account? <a href="#">Sign up</a></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // דמו בלבד (שלא יגיש טופס אמיתי)
+    document.getElementById("googleBtn").addEventListener("click", () => {
+      alert("Google login (demo)");
+    });
+    document.getElementById("signInBtn").addEventListener("click", () => {
+      alert("Sign in (demo)");
+    });
+  </script>
+</body>
+</html>
