@@ -1,6 +1,10 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/leviid/public_html/VolunTrack/
+    - export DEPLOYPATH=/home/$USER/apps/voluntrack/
     - /bin/mkdir -p $DEPLOYPATH
-    - /bin/cp -R . $DEPLOYPATH
+
+    - /bin/cp -R backend $DEPLOYPATH
+    - /bin/cp -R core $DEPLOYPATH
+    - /bin/cp manage.py $DEPLOYPATH
+    - /bin/cp -n requirements.txt $DEPLOYPATH || true
