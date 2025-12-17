@@ -1,10 +1,14 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/$USER/apps/voluntrack/
+    - export DEPLOYPATH=/home/leviid/public_html/voluntrack
     - /bin/mkdir -p $DEPLOYPATH
 
-    - /bin/cp -R backend $DEPLOYPATH
-    - /bin/cp -R core $DEPLOYPATH
-    - /bin/cp manage.py $DEPLOYPATH
-    - /bin/cp -n requirements.txt $DEPLOYPATH || true
+    # build React (Vite) מתוך התיקייה frontend
+    - cd /home/<CPANEL_USER>/repositories/VolunTrack/frontend
+    - /usr/bin/npm ci || /usr/bin/npm install
+    - /usr/bin/npm run build
+
+    # לפרוס את התוצר ל-public_html
+    - /bin/rm -rf $DEPLOYPATH/*
+    - /bin/cp -R dist/* $DEPLOYPATH/
