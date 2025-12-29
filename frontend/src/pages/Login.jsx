@@ -2,7 +2,7 @@ import { useState } from "react";
 import { apiFetch } from "../api/client";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,17 +13,19 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // התאימי את ה-path למה שיש אצלך ב-API (דוגמה ל-JWT):
+      // התאימי את ה-path אם אצלך שונה:
       const data = await apiFetch("/api/auth/login/", {
         method: "POST",
-        body: { email, password },
+        body: { username, password }, // ✅ שולח "username" לשרת
       });
 
-      // אם זה DRF SimpleJWT זה לרוב access/refresh:
+      // אם השרת מחזיר JWT:
       if (data?.access) localStorage.setItem("access_token", data.access);
       if (data?.refresh) localStorage.setItem("refresh_token", data.refresh);
 
       setStatus("התחברת בהצלחה ✅");
+      // אופציונלי: להפנות לבית
+      // window.location.href = "/";
     } catch (err) {
       setStatus(`שגיאה: ${err.message}`);
     } finally {
@@ -34,18 +36,31 @@ export default function Login() {
   return (
     <div style={{ padding: 24, maxWidth: 420 }}>
       <h1>התחברות</h1>
+
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
         <label>
-          אימייל
-          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
+          משתמש
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
+            required
+          />
         </label>
+
         <label>
           סיסמה
-          <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            autoComplete="current-password"
+            required
+          />
         </label>
 
         <button disabled={loading} type="submit">
-          {loading ? "מתחבר..." : "התחבר"}
+          {loading ? "בודק..." : "התחבר"}
         </button>
 
         {status && <div>{status}</div>}
