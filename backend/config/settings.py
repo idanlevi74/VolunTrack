@@ -77,7 +77,7 @@ else:
     # לפרודקשן: תכניסי כאן את הדומיין של הפרונט (שרת המכללה / רנדר סטטי וכו')
     CORS_ALLOWED_ORIGINS = [
         "http://localhost:5173",
-        "https://leviid.mtacloud.co.il/Voluntrack/"
+        "https://voluntrack-frontend.onrender.com"
     ]
 
 # -----------------------------
