@@ -56,8 +56,8 @@ INSTALLED_APPS = [
 # -----------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # חשוב לרנדר/סטטיים
     "corsheaders.middleware.CorsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -67,19 +67,18 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# -----------------------------
-# CORS
-# -----------------------------
-# לפיתוח מקומי - לפתוח הכל
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
-else:
-    # לפרודקשן: תכניסי כאן את הדומיין של הפרונט (שרת המכללה / רנדר סטטי וכו')
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:5173",
-        "https://voluntrack-frontend.onrender.com"
-    ]
+CORS_ALLOW_CREDENTIALS = False  # כי את עם JWT ולא cookies
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://voluntrack-frontend.onrender.com",
+]
+
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "authorization",
+]
 # -----------------------------
 # REST / JWT
 # -----------------------------
