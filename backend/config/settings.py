@@ -75,9 +75,9 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     # לפרודקשן: תכניסי כאן את הדומיין של הפרונט (שרת המכללה / רנדר סטטי וכו')
-    CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [
-        # "https://students.college.ac.il",
+        "http://localhost:5173",
+        "https://leviid.mtacloud.co.il/Voluntrack/"
     ]
 
 # -----------------------------
