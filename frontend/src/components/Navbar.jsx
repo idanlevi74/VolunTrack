@@ -13,7 +13,7 @@ export default function Navbar() {
 
         <nav className="nav">
           <NavLink to="/" end>דף הבית</NavLink>
-          <NavLink to="/explore">חיפוש התנדבויות</NavLink>
+          <NavLink to="/explore-events">חיפוש התנדבויות</NavLink>
           <NavLink to="/organizations">עמותות</NavLink>
           <NavLink to="/dashboard">אזור אישי</NavLink>
         </nav>
