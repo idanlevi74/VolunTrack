@@ -24,7 +24,7 @@ export default function Auth() {
 
     try {
       // 🔑 התחברות דרך API רק במסלול של Email+Password
-      const data = await apiFetch("/api/token/", {
+      const data = await apiFetch("/api/auth/login", {
         method: "POST",
         body: { email, password }, // אם אצלך זה username במקום email -> body: { username: email, password }
       });
