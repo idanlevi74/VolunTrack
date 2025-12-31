@@ -13,11 +13,9 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        # ❗️לא מבקשים username מהלקוח - מזדהים לפי email
+        # ✅ לא מבקשים username מהלקוח - אנחנו נגזור אותו מה-email
         fields = ["email", "password", "full_name", "phone", "city"]
-        extra_kwargs = {
-            "password": {"write_only": True}
-        }
+        extra_kwargs = {"password": {"write_only": True}}
 
     def validate_email(self, value):
         email = (value or "").strip().lower()
@@ -33,15 +31,10 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
         city = validated_data.pop("city", "")
 
         password = validated_data.pop("password")
-        email = validated_data.get("email")
+        email = validated_data.get("email")  # כבר עבר validate ונרמל ל-lower
 
-        # אם ה-User שלך דורש username (User ברירת מחדל של Django) -
-        # נשים username=email כדי לא לשבור ולשמור על ייחודיות.
-        user = User(
-            **validated_data,
-            username=email,
-            role="VOLUNTEER"
-        )
+        # ✅ אם username חובה במודל: נשמור username=email
+        user = User(**validated_data, username=email, role="VOLUNTEER")
         user.set_password(password)
         user.save()
 
@@ -51,13 +44,12 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
             phone=phone,
             city=city,
         )
-
         return user
 
     def to_representation(self, instance):
         return {
             "id": instance.id,
-            "username": instance.username,  # אצלנו זה יהיה האימייל
+            "username": instance.username,  # יהיה שווה לאימייל
             "email": instance.email,
             "role": instance.role,
         }
@@ -71,7 +63,7 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        # ❗️לא מבקשים username מהלקוח - מזדהים לפי email
+        # ✅ לא מבקשים username מהלקוח - אנחנו נגזור אותו מה-email
         fields = ["email", "password", "org_name", "description", "phone", "website"]
         extra_kwargs = {"password": {"write_only": True}}
 
@@ -90,13 +82,9 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
         website = validated_data.pop("website", "")
 
         password = validated_data.pop("password")
-        email = validated_data.get("email")
+        email = validated_data.get("email")  # כבר עבר validate ונרמל ל-lower
 
-        user = User(
-            **validated_data,
-            username=email,
-            role="ORG"
-        )
+        user = User(**validated_data, username=email, role="ORG")
         user.set_password(password)
         user.save()
 
@@ -112,7 +100,7 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         return {
             "id": instance.id,
-            "username": instance.username,  # אצלנו זה יהיה האימייל
+            "username": instance.username,  # יהיה שווה לאימייל
             "email": instance.email,
             "role": instance.role,
         }
