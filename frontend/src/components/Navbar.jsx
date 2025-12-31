@@ -16,17 +16,21 @@ export default function Navbar() {
           <NavLink to="/explore-events">חיפוש התנדבויות</NavLink>
           <NavLink to="/organizations">עמותות</NavLink>
           <NavLink to="/dashboard">אזור אישי</NavLink>
+          <NavLink to="/auth">התחברות</NavLink>
         </nav>
 
-        <button className="burger" onClick={() => setOpen(!open)}>☰</button>
+        <button className="burger" onClick={() => setOpen(!open)} type="button">
+          ☰
+        </button>
       </div>
 
       {open && (
         <div className="mobileNav" onClick={() => setOpen(false)}>
           <Link to="/">דף הבית</Link>
-          <Link to="/explore">חיפוש התנדבויות</Link>
+          <Link to="/explore-events">חיפוש התנדבויות</Link>
           <Link to="/organizations">עמותות</Link>
           <Link to="/dashboard">אזור אישי</Link>
+          <Link to="/auth">התחברות</Link>
         </div>
       )}
     </header>

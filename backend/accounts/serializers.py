@@ -5,6 +5,7 @@ from .models import VolunteerProfile
 
 User = get_user_model()
 
+
 class RegisterVolunteerSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(write_only=True)
     phone = serializers.CharField(required=False, allow_blank=True, write_only=True)
@@ -12,10 +13,19 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["username", "email", "password", "full_name", "phone", "city"]
+        # ❗️לא מבקשים username מהלקוח - מזדהים לפי email
+        fields = ["email", "password", "full_name", "phone", "city"]
         extra_kwargs = {
             "password": {"write_only": True}
         }
+
+    def validate_email(self, value):
+        email = (value or "").strip().lower()
+        if not email:
+            raise serializers.ValidationError("Email is required")
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("Email already exists")
+        return email
 
     def create(self, validated_data):
         full_name = validated_data.pop("full_name")
@@ -23,7 +33,15 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
         city = validated_data.pop("city", "")
 
         password = validated_data.pop("password")
-        user = User(**validated_data, role="VOLUNTEER")
+        email = validated_data.get("email")
+
+        # אם ה-User שלך דורש username (User ברירת מחדל של Django) -
+        # נשים username=email כדי לא לשבור ולשמור על ייחודיות.
+        user = User(
+            **validated_data,
+            username=email,
+            role="VOLUNTEER"
+        )
         user.set_password(password)
         user.save()
 
@@ -37,13 +55,13 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
         return user
 
     def to_representation(self, instance):
-        # תגובה נקייה ל־React
         return {
             "id": instance.id,
-            "username": instance.username,
+            "username": instance.username,  # אצלנו זה יהיה האימייל
             "email": instance.email,
             "role": instance.role,
         }
+
 
 class RegisterOrgSerializer(serializers.ModelSerializer):
     org_name = serializers.CharField(write_only=True)
@@ -53,8 +71,17 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["username", "email", "password", "org_name", "description", "phone", "website"]
+        # ❗️לא מבקשים username מהלקוח - מזדהים לפי email
+        fields = ["email", "password", "org_name", "description", "phone", "website"]
         extra_kwargs = {"password": {"write_only": True}}
+
+    def validate_email(self, value):
+        email = (value or "").strip().lower()
+        if not email:
+            raise serializers.ValidationError("Email is required")
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("Email already exists")
+        return email
 
     def create(self, validated_data):
         org_name = validated_data.pop("org_name")
@@ -63,7 +90,13 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
         website = validated_data.pop("website", "")
 
         password = validated_data.pop("password")
-        user = User(**validated_data, role="ORG")
+        email = validated_data.get("email")
+
+        user = User(
+            **validated_data,
+            username=email,
+            role="ORG"
+        )
         user.set_password(password)
         user.save()
 
@@ -77,10 +110,9 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
         return user
 
     def to_representation(self, instance):
-        # מחזירים תגובה נקייה בלי שדות שלא קיימים ב-User
         return {
             "id": instance.id,
-            "username": instance.username,
+            "username": instance.username,  # אצלנו זה יהיה האימייל
             "email": instance.email,
             "role": instance.role,
         }
