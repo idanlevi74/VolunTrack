@@ -1,9 +1,16 @@
-import { NavLink, Link } from "react-router-dom";
-import { useState } from "react";
-
+import { NavLink, Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  // סוגר את תפריט המובייל בכל מעבר עמוד
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
+  const navClass = ({ isActive }) => `nav__link ${isActive ? "active" : ""}`;
 
   return (
     <header className="topbar">
@@ -13,20 +20,36 @@ export default function Navbar() {
         </Link>
 
         <nav className="nav">
-          <NavLink to="/" end>דף הבית</NavLink>
-          <NavLink to="/explore-events">חיפוש התנדבויות</NavLink>
-          <NavLink to="/organizations">עמותות</NavLink>
-          <NavLink to="/dashboard">אזור אישי</NavLink>
-          <NavLink to="/auth">התחברות</NavLink>
+          <NavLink to="/" end className={navClass}>
+            דף הבית
+          </NavLink>
+          <NavLink to="/explore-events" className={navClass}>
+            חיפוש התנדבויות
+          </NavLink>
+          <NavLink to="/organizations" className={navClass}>
+            עמותות
+          </NavLink>
+          <NavLink to="/dashboard" className={navClass}>
+            אזור אישי
+          </NavLink>
+          <NavLink to="/auth" className={navClass}>
+            התחברות
+          </NavLink>
         </nav>
 
-        <button className="burger" onClick={() => setOpen(!open)} type="button">
+        <button
+          className="burger"
+          onClick={() => setOpen((v) => !v)}
+          type="button"
+          aria-label="Open menu"
+          aria-expanded={open}
+        >
           ☰
         </button>
       </div>
 
       {open && (
-        <div className="mobileNav" onClick={() => setOpen(false)}>
+        <div className="mobileNav">
           <Link to="/">דף הבית</Link>
           <Link to="/explore-events">חיפוש התנדבויות</Link>
           <Link to="/organizations">עמותות</Link>

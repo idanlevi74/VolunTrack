@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/auth.css";
-import "../styles/style.css";
 import { apiFetch } from "../api/client";
 
 export default function Auth() {
