@@ -15,8 +15,14 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/ExploreEvents" element={<ExploreEvents />} />
-        <Route path="/Dashboard" element={<Dashboard />} />
+         <Route element={<RequireAuth />}>
+          <Route path="/Dashboard" element={<Dashboard />} />
+        </Route>
+
+        {/* fallback */}
+        <Route path="*" element={<div>404</div>} />
       </Routes>
+
     </>
   );
 }
