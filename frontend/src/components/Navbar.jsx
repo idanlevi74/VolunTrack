@@ -29,7 +29,7 @@ export default function Navbar() {
           <NavLink to="/organizations" className={navClass}>
             עמותות
           </NavLink>
-          <NavLink to="/dashboard" className={navClass}>
+          <NavLink to="/Dashboard" className={navClass}>
             אזור אישי
           </NavLink>
           <NavLink to="/auth" className={navClass}>
@@ -53,7 +53,7 @@ export default function Navbar() {
           <Link to="/">דף הבית</Link>
           <Link to="/ExploreEvents">חיפוש התנדבויות</Link>
           <Link to="/organizations">עמותות</Link>
-          <Link to="/dashboard">אזור אישי</Link>
+          <Link to="/Dashboard">אזור אישי</Link>
           <Link to="/auth">התחברות</Link>
         </div>
       )}

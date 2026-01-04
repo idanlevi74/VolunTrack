@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import ExploreEvents from "./pages/ExploreEvents";
+import Dashboard from "./pages/Dashboard";
 
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/ExploreEvents" element={<ExploreEvents />} />
+        <Route path="/Dashboard" element={<Dashboard />} />
       </Routes>
     </>
   );
