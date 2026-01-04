@@ -23,7 +23,7 @@ export default function Navbar() {
           <NavLink to="/" end className={navClass}>
             דף הבית
           </NavLink>
-          <NavLink to="/explore-events" className={navClass}>
+          <NavLink to="/ExploreEvents" className={navClass}>
             חיפוש התנדבויות
           </NavLink>
           <NavLink to="/organizations" className={navClass}>
@@ -51,7 +51,7 @@ export default function Navbar() {
       {open && (
         <div className="mobileNav">
           <Link to="/">דף הבית</Link>
-          <Link to="/explore-events">חיפוש התנדבויות</Link>
+          <Link to="/ExploreEvents">חיפוש התנדבויות</Link>
           <Link to="/organizations">עמותות</Link>
           <Link to="/dashboard">אזור אישי</Link>
           <Link to="/auth">התחברות</Link>
