@@ -39,65 +39,6 @@ export default function ExploreEvents() {
   };
 
   return (
-    <div lang="he" dir="rtl">
-      <header className="topbar">
-        <div className="container topbar__inner">
-          <Link className="brand" to="/">
-            VolunTrack <span className="brand__dot">♥</span>
-          </Link>
-
-          <nav className="nav" aria-label="ניווט ראשי">
-            <NavLink to="/" className={({ isActive }) => "nav__link" + (isActive ? " active" : "")}>
-              דף הבית
-            </NavLink>
-            <NavLink
-              to="/explore-events"
-              className={({ isActive }) => "nav__link" + (isActive ? " active" : "")}
-            >
-              חיפוש התנדבויות
-            </NavLink>
-            <NavLink
-              to="/organizations"
-              className={({ isActive }) => "nav__link" + (isActive ? " active" : "")}
-            >
-              עמותות
-            </NavLink>
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) => "nav__link" + (isActive ? " active" : "")}
-            >
-              אזור אישי
-            </NavLink>
-          </nav>
-
-          <button
-            className="burger"
-            aria-label={mobileOpen ? "סגור תפריט" : "פתח תפריט"}
-            aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen((v) => !v)}
-            type="button"
-          >
-            ☰
-          </button>
-        </div>
-
-        {mobileOpen && (
-          <div className="mobileNav" role="navigation" aria-label="ניווט מובייל">
-            <Link to="/" onClick={() => setMobileOpen(false)}>
-              דף הבית
-            </Link>
-            <Link to="/explore-events" onClick={() => setMobileOpen(false)}>
-              חיפוש התנדבויות
-            </Link>
-            <Link to="/organizations" onClick={() => setMobileOpen(false)}>
-              עמותות
-            </Link>
-            <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
-              אזור אישי
-            </Link>
-          </div>
-        )}
-      </header>
 
       <main className="page">
         <div className="container">
