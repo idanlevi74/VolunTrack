@@ -4,7 +4,7 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import ExploreEvents from "./pages/ExploreEvents";
 import Dashboard from "./pages/Dashboard";
-
+import RequireAuth from "./components/RequireAuth";
 
 export default function App() {
   return (
@@ -15,14 +15,13 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/explore" element={<ExploreEvents />} />
-         <Route element={<RequireAuth />}>
+
+        <Route element={<RequireAuth />}>
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
 
-        {/* fallback */}
         <Route path="*" element={<div>404</div>} />
       </Routes>
-
     </>
   );
 }
