@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../styles/auth.css";
-
 import { apiFetch } from "../api/client";
+import { useAuth } from "../components/AuthContext";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,7 +16,6 @@ export default function Auth() {
   const [error, setError] = useState("");
 
   const handleGoogle = () => {
-    // נשאר כמו במקור (TODO שלך)
     alert("Google auth – עוד לא מחובר (TODO)");
   };
 
@@ -24,21 +25,28 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      // 🔑 התחברות דרך API רק במסלול של Email+Password
       const data = await apiFetch("/api/auth/login/", {
         method: "POST",
-        body: { email, password }, // אם אצלך זה username במקום email -> body: { username: email, password }
+        body: { email, password },
       });
 
-      // SimpleJWT מחזיר: { access, refresh }
       if (!data?.access) {
         throw new Error("Login succeeded but access token is missing");
       }
 
-      localStorage.setItem("access_token", data.access);
-      if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
+      // ✅ שמות אחידים לטוקנים
+      localStorage.setItem("accessToken", data.access);
+      if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
 
-      navigate("/dashboard");
+      // ✅ עדכון ה-Context כדי שה-Navbar יתעדכן מייד
+      login({
+        token: data.access,
+        user: { email }, // זמני. אם יש לך endpoint /api/me נביא שם מלא
+      });
+
+      // ✅ חזרה לעמוד שניסו להגיע אליו (אם הגיעו מ-RequireAuth)
+      const from = location.state?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err?.message || "שגיאה בהתחברות");
     } finally {

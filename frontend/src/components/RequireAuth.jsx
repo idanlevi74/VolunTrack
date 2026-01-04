@@ -5,10 +5,10 @@ export default function RequireAuth() {
   const { isAuth, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return null; // או spinner
+  if (loading) return <div style={{ padding: 24 }}>טוען...</div>;
 
   if (!isAuth) {
-    return <Navigate to="/Auth" replace state={{ from: location }} />;
+    return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
   return <Outlet />;
