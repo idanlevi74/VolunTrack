@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
-export default function ExploreEvents() {
-  const [mobileOpen, setMobileOpen] = useState(false);
+import { Link } from "react-router-dom";
 
+export default function ExploreEvents() {
   const [category, setCategory] = useState("כל הקטגוריות");
   const [location, setLocation] = useState("מיקום");
   const [q, setQ] = useState("");
@@ -10,7 +9,7 @@ export default function ExploreEvents() {
   // TODO: החליפי את זה בדאטה מה-API שלך
   const events = useMemo(
     () => [
-      // דוגמא לאירוע:
+      // דוגמא:
       // { id: 1, title: "חלוקת מזון למשפחות", org: "לב טוב", category: "חלוקת מזון", location: "תל אביב" },
     ],
     []
@@ -39,28 +38,38 @@ export default function ExploreEvents() {
   };
 
   return (
-
+    <>
       <main className="page">
         <div className="container">
           <h1 className="pageTitle">מצאו את ההתנדבות הבאה שלכם</h1>
-          <p className="pageSub">חפשו בין מאות אירועים, סננו לפי מיקום או תחום עניין, והירשמו בקליק.</p>
+          <p className="pageSub">
+            חפשו בין מאות אירועים, סננו לפי מיקום או תחום עניין, והירשמו בקליק.
+          </p>
 
           <div className="box boxPad">
             <div className="filters">
-              <select className="select" value={category} onChange={(e) => setCategory(e.target.value)}>
-                <option>כל הקטגוריות</option>
-                <option>חלוקת מזון</option>
-                <option>קשישים</option>
-                <option>ילדים</option>
-                <option>סביבה</option>
+              <select
+                className="select"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="כל הקטגוריות">כל הקטגוריות</option>
+                <option value="חלוקת מזון">חלוקת מזון</option>
+                <option value="קשישים">קשישים</option>
+                <option value="ילדים">ילדים</option>
+                <option value="סביבה">סביבה</option>
               </select>
 
-              <select className="select" value={location} onChange={(e) => setLocation(e.target.value)}>
-                <option>מיקום</option>
-                <option>תל אביב</option>
-                <option>ירושלים</option>
-                <option>חיפה</option>
-                <option>באר שבע</option>
+              <select
+                className="select"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              >
+                <option value="מיקום">מיקום</option>
+                <option value="תל אביב">תל אביב</option>
+                <option value="ירושלים">ירושלים</option>
+                <option value="חיפה">חיפה</option>
+                <option value="באר שבע">באר שבע</option>
               </select>
 
               <input
@@ -77,7 +86,9 @@ export default function ExploreEvents() {
                 <div className="searchIcon">🔎</div>
                 לא נמצאו אירועים
                 <br />
-                <span style={{ fontWeight: 700 }}>נסו לשנות את סינוני החיפוש או לנקות הכל</span>
+                <span style={{ fontWeight: 700 }}>
+                  נסו לשנות את סינוני החיפוש או לנקות הכל
+                </span>
                 <div style={{ marginTop: 14 }}>
                   <button className="btnSmall" type="button" onClick={clearFilters}>
                     ניקוי כל הסינונים
@@ -113,6 +124,6 @@ export default function ExploreEvents() {
           <span>© 2025 VolunTrack</span>
         </div>
       </footer>
-    </div>
+    </>
   );
 }
