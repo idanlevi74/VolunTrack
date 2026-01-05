@@ -38,6 +38,7 @@ class VolunteerProfile(models.Model):
     full_name = models.CharField(max_length=200)
     phone = models.CharField(max_length=50, blank=True)
     city = models.CharField(max_length=100, blank=True)
+    points = models.IntegerField(default=0)
 
     def __str__(self):
         return self.full_name
