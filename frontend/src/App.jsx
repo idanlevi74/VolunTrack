@@ -5,6 +5,7 @@ import Auth from "./pages/Auth";
 import ExploreEvents from "./pages/ExploreEvents";
 import Dashboard from "./pages/Dashboard";
 import Organizations from "./pages/Organizations";
+import Signup from "./pages/signup";
 import RequireAuth from "./components/RequireAuth";
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/explore" element={<ExploreEvents />} />
         <Route path="/organizations" element={<Organizations />} />
         <Route element={<RequireAuth />}>

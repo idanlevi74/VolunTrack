@@ -33,6 +33,7 @@ export default function Navbar() {
 
           {!isAuth ? (
             <NavLink to="/auth" className={navClass}>התחברות</NavLink>
+            <NavLink to="/signup" className={navClass}>הרשמה</NavLink>
           ) : (
             <button className="nav__link" onClick={logout}>
               התנתקות
