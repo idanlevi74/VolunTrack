@@ -5,7 +5,7 @@ import Auth from "./pages/Auth";
 import ExploreEvents from "./pages/ExploreEvents";
 import Dashboard from "./pages/Dashboard";
 import Organizations from "./pages/Organizations";
-import Signup from "./pages/signup";
+import Signup from "./pages/Signup";
 import RequireAuth from "./components/RequireAuth";
 
 export default function App() {
