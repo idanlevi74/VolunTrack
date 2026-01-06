@@ -5,13 +5,17 @@ import { useAuth } from "./AuthContext";
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  const { isAuth, user, logout } = useAuth(); // ✅ מקור אמת
+  const { isAuth, user, logout } = useAuth();
 
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
 
   const navClass = ({ isActive }) => `nav__link ${isActive ? "active" : ""}`;
+
+  const role = user?.role;
+  const isOrg = isAuth && role === "ORG";
+  const isVolunteer = isAuth && role === "VOLUNTEER";
 
   return (
     <header className="topbar">
@@ -21,9 +25,23 @@ export default function Navbar() {
         </Link>
 
         <nav className="nav">
-          <NavLink to="/" end className={navClass}>דף הבית</NavLink>
-          <NavLink to="/explore" className={navClass}>חיפוש התנדבויות</NavLink>
-          <NavLink to="/organizations" className={navClass}>עמותות</NavLink>
+          <NavLink to="/" end className={navClass}>
+            דף הבית
+          </NavLink>
+
+          {isOrg ? (
+            <NavLink to="/createevent" className={navClass}>
+              הקמת אירוע
+            </NavLink>
+          ) : (
+            <NavLink to="/explore" className={navClass}>
+              חיפוש התנדבויות
+            </NavLink>
+          )}
+
+          <NavLink to="/organizations" className={navClass}>
+            עמותות
+          </NavLink>
 
           {isAuth && (
             <NavLink to="/dashboard" className={navClass}>
@@ -32,12 +50,16 @@ export default function Navbar() {
           )}
 
           {!isAuth ? (
-              <>
-            <NavLink to="/auth" className={navClass}>התחברות</NavLink>
-            <NavLink to="/signup" className={navClass}>הרשמה</NavLink>
+            <>
+              <NavLink to="/auth" className={navClass}>
+                התחברות
+              </NavLink>
+              <NavLink to="/signup" className={navClass}>
+                הרשמה
+              </NavLink>
             </>
           ) : (
-            <button className="nav__link" onClick={logout}>
+            <button className="nav__link" type="button" onClick={logout}>
               התנתקות
             </button>
           )}
