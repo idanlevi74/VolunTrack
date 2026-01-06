@@ -1,7 +1,9 @@
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from orgs.models import OrganizationProfile
+from django.db import transaction
+from rest_framework import serializers
+
 from .models import VolunteerProfile
+from orgs.models import OrganizationProfile  # ודאי שזה הנתיב הנכון אצלך
 
 User = get_user_model()
 
@@ -13,7 +15,6 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        # ✅ לא מבקשים username מהלקוח - אנחנו נגזור אותו מה-email
         fields = ["email", "password", "full_name", "phone", "city"]
         extra_kwargs = {"password": {"write_only": True}}
 
@@ -25,16 +26,18 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Email already exists")
         return email
 
+    @transaction.atomic
     def create(self, validated_data):
         full_name = validated_data.pop("full_name")
         phone = validated_data.pop("phone", "")
         city = validated_data.pop("city", "")
 
         password = validated_data.pop("password")
-        email = validated_data.get("email")  # כבר עבר validate ונרמל ל-lower
+        # email כבר נורמל ב-validate_email
+        email = validated_data.get("email")
 
-        # ✅ אם username חובה במודל: נשמור username=email
-        user = User(**validated_data, username=email, role="VOLUNTEER")
+        # ✅ חשוב: אין username במודל שלך, אז לא שולחים username בכלל
+        user = User(**validated_data, role=User.Role.VOLUNTEER)
         user.set_password(password)
         user.save()
 
@@ -44,14 +47,16 @@ class RegisterVolunteerSerializer(serializers.ModelSerializer):
             phone=phone,
             city=city,
         )
+
         return user
 
     def to_representation(self, instance):
+        # החזרה נקייה לפרונט
         return {
             "id": instance.id,
-            "username": instance.username,  # יהיה שווה לאימייל
             "email": instance.email,
             "role": instance.role,
+            "full_name": getattr(getattr(instance, "vol_profile", None), "full_name", ""),
         }
 
 
@@ -63,7 +68,6 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        # ✅ לא מבקשים username מהלקוח - אנחנו נגזור אותו מה-email
         fields = ["email", "password", "org_name", "description", "phone", "website"]
         extra_kwargs = {"password": {"write_only": True}}
 
@@ -75,6 +79,7 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Email already exists")
         return email
 
+    @transaction.atomic
     def create(self, validated_data):
         org_name = validated_data.pop("org_name")
         description = validated_data.pop("description", "")
@@ -82,9 +87,10 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
         website = validated_data.pop("website", "")
 
         password = validated_data.pop("password")
-        email = validated_data.get("email")  # כבר עבר validate ונרמל ל-lower
+        email = validated_data.get("email")
 
-        user = User(**validated_data, username=email, role="ORG")
+        # ✅ חשוב: אין username במודל שלך
+        user = User(**validated_data, role=User.Role.ORG)
         user.set_password(password)
         user.save()
 
@@ -95,12 +101,16 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
             phone=phone,
             website=website,
         )
+
         return user
 
     def to_representation(self, instance):
+        # החזרה נקייה לפרונט
+        org_profile = getattr(instance, "org_profile", None) or getattr(instance, "orgprofile", None)
+        # (תלוי איך קראת ל-related_name במודל OrganizationProfile)
         return {
             "id": instance.id,
-            "username": instance.username,  # יהיה שווה לאימייל
             "email": instance.email,
             "role": instance.role,
+            "org_name": getattr(org_profile, "org_name", ""),
         }
