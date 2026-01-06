@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import VolunteerProfile
+from accounts.models import VolunteerProfile
 from orgs.models import OrganizationProfile
 
 User = get_user_model()
