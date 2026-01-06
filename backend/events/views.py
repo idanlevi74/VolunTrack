@@ -1,10 +1,10 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
+from .serializers import EventSerializer, EventSignupSerializer
 from accounts.permissions import IsOrganization, IsVolunteer
 from .models import Event, EventSignup
-from .serializers import EventSerializer, EventSignupSerializer
+
 
 
 class EventViewSet(viewsets.ModelViewSet):
