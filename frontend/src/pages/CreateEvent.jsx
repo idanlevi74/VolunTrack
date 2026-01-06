@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 /**
  * CreateEvent.jsx (בלי Navbar)
- * מבוסס על create-event.html :contentReference[oaicite:1]{index=1}
+ * מותאם למודל/API:
+ * POST /api/events/
+ * payload:
+ * { title, description, category, location, date, time, needed_volunteers }
  *
- * עתידי: יצירת אירוע דרך API (POST לשרת).
- * הערה: אם אין VITE_API_BASE_URL או שאין חיבור לשרת/DB — לא נשלח POST ונציג הודעה.
+ * הערה: אם אין VITE_API_BASE_URL או שאין accessToken (לא מחוברת) — לא נשלח POST.
  */
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
@@ -30,6 +32,7 @@ async function fetchJson(path, { token, method = "GET", body } = {}) {
   }
 
   if (!res.ok) {
+    // אם השרת מחזיר HTML 404 (לא API) – נציג הודעה נקייה
     const isHtml = typeof data === "string" && data.toLowerCase().includes("<!doctype html");
     const msg =
       (data && data.detail) ||
@@ -37,24 +40,13 @@ async function fetchJson(path, { token, method = "GET", body } = {}) {
       (isHtml ? `Not Found: ${path}` : `Request failed (${res.status})`);
     throw new Error(msg);
   }
+
   return data;
 }
 
-function makeEventId(data) {
-  // אותו רעיון כמו ב-HTML: מזהה “דמו” מקומי לצורך סטטוס בפרונט
-  const raw = `${data.title}|${data.date}|${data.time}|${data.location}|${data.category}`;
-  try {
-    return btoa(unescape(encodeURIComponent(raw))).slice(0, 32);
-  } catch {
-    return String(Date.now());
-  }
-}
-
-function isCreated(eventId) {
-  return localStorage.getItem(`eventCreated:${eventId}`) === "1";
-}
-
 export default function CreateEvent() {
+  const navigate = useNavigate();
+
   const token = localStorage.getItem("accessToken") || "";
 
   const cityOptions = useMemo(() => ["תל אביב", "ירושלים", "באר שבע", "חיפה"], []);
@@ -67,17 +59,13 @@ export default function CreateEvent() {
     title: "",
     category: "",
     description: "",
-    needed: "",
+    needed_volunteers: 1,
   });
 
-  const [preview, setPreview] = useState(null); // data after "preview"
-  const [currentEventId, setCurrentEventId] = useState(null);
-
-  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [creating, setCreating] = useState(false);
   const [err, setErr] = useState("");
-  const [statusText, setStatusText] = useState("כדי ליצור אירוע, קודם בצע/י תצוגה מקדימה.");
-
-  const created = currentEventId ? isCreated(currentEventId) : false;
+  const [info, setInfo] = useState("");
 
   const onChange = (key) => (e) => {
     const value = e.target.value;
@@ -91,36 +79,28 @@ export default function CreateEvent() {
     if (!form.title.trim()) return "נא להזין כותרת";
     if (!form.category) return "נא לבחור קטגוריה";
     if (!form.description.trim()) return "נא להזין תיאור";
-    if (!form.needed || Number(form.needed) < 1) return "נא להזין כמות מתנדבים רצויה (לפחות 1)";
+    const n = Number(form.needed_volunteers);
+    if (!Number.isFinite(n) || n < 1) return "נא להזין כמות מתנדבים (לפחות 1)";
     return "";
   };
 
   const handlePreview = (e) => {
     e.preventDefault();
     setErr("");
+    setInfo("");
 
     const v = validate();
-    if (v) {
-      setErr(v);
-      return;
-    }
+    if (v) return setErr(v);
 
-    const data = {
-      ...form,
+    setPreview({
       title: form.title.trim(),
       description: form.description.trim(),
-      needed: String(form.needed),
-    };
-
-    const id = makeEventId(data);
-    setCurrentEventId(id);
-    setPreview(data);
-
-    if (isCreated(id)) {
-      setStatusText("האירוע קיים כעת בפרונט (הדגמה בלבד).");
-    } else {
-      setStatusText("לחץ כדי ליצור את האירוע בפרונט / דרך ה-API (כשתחברי).");
-    }
+      category: form.category,
+      location: form.location,
+      date: form.date, // "YYYY-MM-DD"
+      time: form.time, // "HH:MM"
+      needed_volunteers: Number(form.needed_volunteers),
+    });
   };
 
   const handleReset = () => {
@@ -131,82 +111,107 @@ export default function CreateEvent() {
       title: "",
       category: "",
       description: "",
-      needed: "",
+      needed_volunteers: 1,
     });
     setPreview(null);
-    setCurrentEventId(null);
     setErr("");
-    setStatusText("כדי ליצור אירוע, קודם בצע/י תצוגה מקדימה.");
+    setInfo("");
   };
 
   const handleCreate = async () => {
-    if (!preview || !currentEventId) return;
-
     setErr("");
-    setLoading(true);
+    setInfo("");
 
+    if (!preview) return;
+
+    // הערה: יצירת אירוע דורשת משתמש מחובר + Role=ORG (השרת יאכוף עם IsOrganization).
+    if (!token) {
+      setErr("כדי ליצור אירוע צריך להתחבר כעמותה.");
+      return;
+    }
+
+    if (!API_BASE) {
+      setErr("אין חיבור לשרת (VITE_API_BASE_URL לא מוגדר).");
+      return;
+    }
+
+    setCreating(true);
     try {
-      // הערה: הנתונים אמורים להישלח ל-DB דרך API.
-      // אם אין API_BASE או שאין endpoint מחובר עדיין — לא נשלח POST בפועל.
-      if (!API_BASE) {
-        localStorage.setItem(`eventCreated:${currentEventId}`, "1");
-        setStatusText("אין חיבור לשרת (VITE_API_BASE_URL לא מוגדר) — יצירה נשמרה מקומית כדמו בלבד.");
-        return;
-      }
-
-      /**
-       * TODO: להתאים ל-endpoint האמיתי שלך ליצירת אירוע (בדרך כלל):
-       * POST /api/events/
-       * payload משוער (תשני לפי המודל שלך ב-Django):
-       * {
-       *   title, description, category, location,
-       *   date, time,
-       *   needed_volunteers: number
-       * }
-       */
-      const payload = {
-        title: preview.title,
-        description: preview.description,
-        category: preview.category,
-        location: preview.location,
-        date: preview.date,
-        time: preview.time,
-        needed_volunteers: Number(preview.needed),
-      };
-
-      // ⚠️ אם ה-DRF שלך דורש slash בסוף:
-      const data = await fetchJson("/api/events/", {
+      // ✅ זה ה-payload המדויק לפי המודל
+      const created = await fetchJson("/api/events/", {
         token,
         method: "POST",
-        body: payload,
+        body: preview,
       });
 
-      // אם הצליח בשרת — נסמן מקומי גם כדי לשקף UI
-      localStorage.setItem(`eventCreated:${currentEventId}`, "1");
-      setStatusText("האירוע נוצר ✅ (נשלח לשרת בהצלחה)");
+      setInfo("האירוע נוצר בהצלחה ✅");
 
-      // אם השרת מחזיר id לאירוע, אפשר לתת לינק
-      // לדוגמה: data.id
-      // (לא חובה, אבל נחמד)
+      // אם השרת מחזיר id, אפשר להפנות לאירוע
+      const id = created?.id;
+      setTimeout(() => {
+        if (id) navigate(`/events/${id}`);
+        else navigate("/dashboard");
+      }, 400);
     } catch (e) {
       setErr(e?.message || "שגיאה ביצירת אירוע");
-      setStatusText("נכשלה יצירת האירוע. בדקי חיבור/endpoint/שדות.");
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   };
+
+  // אם אין token – נציג CTA להתחברות/הרשמה (במקום לקרוס)
+  if (!token) {
+    return (
+      <>
+        <main className="page">
+          <div className="container">
+            <div className="box boxPad">
+              <h1 style={{ margin: 0, fontWeight: 900 }}>יצירת אירוע</h1>
+              <p style={{ margin: "10px 0 0", color: "var(--muted)", fontWeight: 800, lineHeight: 1.8 }}>
+                כדי ליצור אירוע צריך להתחבר כעמותה.
+                {/* הערה: השרת יאכוף Role=ORG דרך IsOrganization */}
+              </p>
+
+              <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link className="btnSmall" to="/auth">
+                  התחברות
+                </Link>
+                <Link className="btnSmall" to="/signup">
+                  הרשמה
+                </Link>
+                <Link className="btnGhost" to="/">
+                  חזרה לדף הבית
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <footer className="footer">
+          <div className="container footer__bottom">
+            <span>© 2025 VolunTrack</span>
+          </div>
+        </footer>
+      </>
+    );
+  }
 
   return (
     <>
       <main className="page">
         <section className="card">
           <h1 className="h1">הקמת אירוע</h1>
-          <p className="h2">מלא/י את הפרטים, בדוק/י תצוגה מקדימה ואז צור/י אירוע</p>
+          <p className="h2">מלא/י פרטים → תצוגה מקדימה → יצירה</p>
 
           {err ? (
             <div className="box boxPad" style={{ borderColor: "rgba(239,68,68,.35)", marginBottom: 12 }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>אופס 😅</div>
               <div style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.8 }}>{err}</div>
+            </div>
+          ) : info ? (
+            <div className="box boxPad" style={{ borderColor: "rgba(34,197,94,.35)", marginBottom: 12 }}>
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>הצלחה</div>
+              <div style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.8 }}>{info}</div>
             </div>
           ) : null}
 
@@ -290,18 +295,17 @@ export default function CreateEvent() {
                 type="number"
                 min="1"
                 step="1"
-                placeholder="למשל: 12"
                 required
-                value={form.needed}
-                onChange={onChange("needed")}
+                value={form.needed_volunteers}
+                onChange={onChange("needed_volunteers")}
               />
             </div>
 
             <div className="actions">
-              <button className="btnPrimary" type="submit" disabled={loading}>
+              <button className="btnPrimary" type="submit" disabled={creating}>
                 תצוגה מקדימה
               </button>
-              <button className="btnGhost" type="button" onClick={handleReset} disabled={loading}>
+              <button className="btnGhost" type="button" onClick={handleReset} disabled={creating}>
                 איפוס
               </button>
             </div>
@@ -310,14 +314,14 @@ export default function CreateEvent() {
           <div className="sep">תצוגה מקדימה + יצירה</div>
 
           <div className="preview" aria-live="polite">
-            <h3 className="previewTitle">
-              {preview?.title ? preview.title : "עדיין לא נוצר אירוע"}
-            </h3>
+            <h3 className="previewTitle">{preview?.title || "עדיין אין תצוגה"}</h3>
 
             <div className="badgeRow">
               <span className="badge">קטגוריה: {preview?.category || "—"}</span>
               <span className="badge">מיקום: {preview?.location || "—"}</span>
-              <span className="badge">דרושים: {preview?.needed ? `${preview.needed} מתנדבים` : "—"}</span>
+              <span className="badge">
+                דרושים: {preview?.needed_volunteers ? `${preview.needed_volunteers} מתנדבים` : "—"}
+              </span>
             </div>
 
             <div className="previewMeta">
@@ -327,16 +331,9 @@ export default function CreateEvent() {
 
             <div>תיאור: {preview?.description || "—"}</div>
 
-            <button
-              className={`btnCreate ${created ? "btnCreated" : ""}`}
-              type="button"
-              disabled={!preview || loading}
-              onClick={handleCreate}
-            >
-              {created ? "האירוע נוצר ✅" : loading ? "יוצר..." : "צור אירוע"}
+            <button className="btnCreate" type="button" disabled={!preview || creating} onClick={handleCreate}>
+              {creating ? "יוצר..." : "צור אירוע"}
             </button>
-
-            <div className="status">{statusText}</div>
 
             <div style={{ marginTop: 12 }}>
               <Link className="btnGhost" to="/dashboard">
