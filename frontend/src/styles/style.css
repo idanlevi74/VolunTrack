@@ -520,3 +520,36 @@ body{
   .hero{ padding:56px 0 44px; }
   .cta__title{ font-size: 30px; }
 }
+.footer {
+  border-top: 1px solid var(--line, #e5e7eb);
+  background: #fff;
+  padding: 18px 0;
+  margin-top: auto;
+}
+
+.footer__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.footer__copy {
+  color: #6b7280;
+}
+
+.footer__nav {
+  display: flex;
+  gap: 14px;
+}
+
+.footer__nav a {
+  color: #374151;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.footer__nav a:hover {
+  text-decoration: underline;
+}

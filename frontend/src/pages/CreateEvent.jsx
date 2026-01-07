@@ -343,12 +343,6 @@ export default function CreateEvent() {
           </div>
         </section>
       </main>
-
-      <footer className="footer">
-        <div className="container footer__bottom">
-          <span>© 2025 VolunTrack</span>
-        </div>
-      </footer>
     </>
   );
 }
