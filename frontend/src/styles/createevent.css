@@ -1,0 +1,220 @@
+/* Scoped styles for CreateEvent.jsx */
+/* Requires: <main className="page createEventPage"> */
+
+.createEventPage .card{
+  width: min(820px, 100%);
+  margin: 0 auto;
+  padding: 18px;
+  border-radius: 18px;
+  background:#fff;
+  border:1px solid var(--line);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.createEventPage .h1{
+  margin: 6px 0 0;
+  font-weight: 900;
+  font-size: 34px;
+  text-align: center;
+}
+
+.createEventPage .h2{
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* Grid for date/time */
+.createEventPage .grid{
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px){
+  .createEventPage .grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+.createEventPage .label{
+  margin-top: 14px;
+  margin-bottom: 8px;
+  font-weight: 900;
+  color: #111827;
+  font-size: 13px;
+}
+
+/* Input wrapper */
+.createEventPage .field{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background:#fff;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+.createEventPage .field span{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display:grid;
+  place-items:center;
+  background:#f1f5f9;
+  color:#334155;
+  flex: 0 0 auto;
+}
+
+.createEventPage .field:focus-within{
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+}
+
+.createEventPage input,
+.createEventPage select,
+.createEventPage textarea{
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.createEventPage textarea{
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.7;
+}
+
+/* Actions */
+.createEventPage .actions{
+  margin-top: 16px;
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.createEventPage .btnPrimary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(16,185,129,0.5);
+  background:#10b981;
+  color:#052e2b;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform .05s ease, filter .15s ease;
+}
+
+.createEventPage .btnPrimary:hover{ filter: brightness(.98); }
+.createEventPage .btnPrimary:active{ transform: translateY(1px); }
+
+.createEventPage .btnGhost{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background:#fff;
+  color: var(--text);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.createEventPage .btnGhost:hover{ background:#f8fafc; }
+
+.createEventPage button:disabled{
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+/* Divider */
+.createEventPage .sep{
+  margin: 18px 0 12px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+  font-weight: 900;
+  color: #334155;
+}
+
+/* Preview box */
+.createEventPage .preview{
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.createEventPage .previewTitle{
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.createEventPage .badgeRow{
+  margin-top: 12px;
+  display:flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.createEventPage .badge{
+  display:inline-flex;
+  align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background:#fff;
+  font-weight: 900;
+  font-size: 12px;
+  color:#111827;
+}
+
+.createEventPage .previewMeta{
+  margin-top: 12px;
+  display:grid;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.createEventPage .preview > div:last-of-type{
+  margin-top: 10px;
+  color:#334155;
+  font-weight: 800;
+  line-height: 1.8;
+}
+
+/* Create button */
+.createEventPage .btnCreate{
+  margin-top: 14px;
+  width: 100%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 13px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(99,102,241,0.35);
+  background: rgba(99,102,241,0.10);
+  color:#3730a3;
+  font-weight: 900;
+  cursor: pointer;
+  transition: filter .15s ease, transform .05s ease;
+}
+
+.createEventPage .btnCreate:hover{ filter: brightness(.98); }
+.createEventPage .btnCreate:active{ transform: translateY(1px); }

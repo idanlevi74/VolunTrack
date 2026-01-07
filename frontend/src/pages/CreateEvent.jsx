@@ -1,15 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
-/**
- * CreateEvent.jsx (בלי Navbar)
- * מותאם למודל/API:
- * POST /api/events/
- * payload:
- * { title, description, category, location, date, time, needed_volunteers }
- *
- * הערה: אם אין VITE_API_BASE_URL או שאין accessToken (לא מחוברת) — לא נשלח POST.
- */
+import "../styles/createevent.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -186,19 +177,13 @@ export default function CreateEvent() {
             </div>
           </div>
         </main>
-
-        <footer className="footer">
-          <div className="container footer__bottom">
-            <span>© 2025 VolunTrack</span>
-          </div>
-        </footer>
       </>
     );
   }
 
   return (
     <>
-      <main className="page">
+      <main className="page createEventPage">
         <section className="card">
           <h1 className="h1">הקמת אירוע</h1>
           <p className="h2">מלא/י פרטים → תצוגה מקדימה → יצירה</p>
