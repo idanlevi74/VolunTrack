@@ -2,6 +2,7 @@ from django.utils import timezone
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.permissions import IsOrganization, IsVolunteer
 from .models import Event, EventSignup
@@ -150,3 +151,30 @@ class EventViewSet(viewsets.ModelViewSet):
         qs = event.signups.select_related("volunteer", "volunteer__vol_profile")
         serializer = s.EventSignupSerializer(qs, many=True)
         return Response(serializer.data)
+
+class DashboardStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        today = timezone.localdate()
+
+        activities_count = EventSignup.objects.filter(
+            volunteer=request.user,
+            event__date__lt=today
+        ).count()
+
+        return Response({
+            "reliability_score": 100,
+            "activities_count": activities_count,
+            "hours_total": 0,
+        })
+
+
+class OrgAdminView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        u = request.user
+        return Response({
+            "can_manage": u.role in (u.Role.ORG, u.Role.ADMIN),
+        })

@@ -1,7 +1,13 @@
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import EventViewSet
 
+from .views import EventViewSet, DashboardStatsView, OrgAdminView
 router = DefaultRouter()
 router.register("events", EventViewSet, basename="events")
 
-urlpatterns = router.urls
+urlpatterns = [
+    path("", include(router.urls)),
+
+    path("dashboard/stats/", DashboardStatsView.as_view(), name="dashboard-stats"),
+    path("org-admin/", OrgAdminView.as_view(), name="org-admin"),
+]
