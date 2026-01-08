@@ -28,6 +28,8 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // ⚠️ אצלך זה כנראה username+password ולא email+password?
+      // אם ההתחברות שלך היא email+password - תשאירי ככה.
       const data = await apiFetch("/api/auth/login/", {
         method: "POST",
         body: { email, password },
@@ -38,7 +40,6 @@ export default function Auth() {
       localStorage.setItem("accessToken", data.access);
       if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
 
-      // עדיף לשמור user מהשרת אם קיים; אם לא — email זמני
       login({
         token: data.access,
         user: data.user || { email },
@@ -52,11 +53,12 @@ export default function Auth() {
     }
   };
 
-  // ✅ התחברות Google (כפתור אמיתי)
-  const handleGoogleSuccess = async (data) => {
-    try {
-      setError("");
+  // ✅ התחברות Google (תיקון: מפסיק loading כבר בתחילת ה-success)
+  const handleGoogleSuccess = (data) => {
+    setGoogleLoading(false);
+    setError("");
 
+    try {
       if (!data?.access) throw new Error("Google login succeeded but access token is missing");
 
       localStorage.setItem("accessToken", data.access);
@@ -70,8 +72,6 @@ export default function Auth() {
       redirectAfterLogin();
     } catch (err) {
       setError(err?.message || "שגיאה בהתחברות עם Google");
-    } finally {
-      setGoogleLoading(false);
     }
   };
 
