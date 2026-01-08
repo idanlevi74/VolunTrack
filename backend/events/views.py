@@ -5,11 +5,11 @@ from rest_framework.response import Response
 
 from accounts.permissions import IsOrganization, IsVolunteer
 from .models import Event, EventSignup
-from .serializers import EventSerializer, EventSignupSerializer
+from . import serializers as s
 
 
 class EventViewSet(viewsets.ModelViewSet):
-    serializer_class = EventSerializer
+    serializer_class = s.EventSerializer
 
     # ======================
     # מי רואה איזה אירועים (+ status filter לדשבורד)
@@ -148,5 +148,5 @@ class EventViewSet(viewsets.ModelViewSet):
             )
 
         qs = event.signups.select_related("volunteer", "volunteer__vol_profile")
-        serializer = EventSignupSerializer(qs, many=True)
+        serializer = s.EventSignupSerializer(qs, many=True)
         return Response(serializer.data)

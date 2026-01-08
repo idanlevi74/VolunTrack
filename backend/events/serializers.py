@@ -5,7 +5,6 @@ from .models import Event, EventSignup
 class EventSerializer(serializers.ModelSerializer):
     signups_count = serializers.IntegerField(source="signups.count", read_only=True)
 
-    # 👇 זה מה שהדשבורד צריך
     org_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -27,8 +26,17 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = ["organization", "created_at"]
 
     def get_org_name(self, obj):
-        org = obj.organization
-        if not org:
-            return ""
-        # אם בעתיד יהיה OrganizationProfile עם שם – כאן משנים
-        return getattr(org, "email", "")
+        # כרגע אין לך OrganizationProfile עם name, אז נחזיר email
+        org = getattr(obj, "organization", None)
+        return getattr(org, "email", "") if org else ""
+
+
+class EventSignupSerializer(serializers.ModelSerializer):
+    volunteer_name = serializers.CharField(
+        source="volunteer.vol_profile.full_name",
+        read_only=True
+    )
+
+    class Meta:
+        model = EventSignup
+        fields = ["id", "volunteer_name", "created_at"]
