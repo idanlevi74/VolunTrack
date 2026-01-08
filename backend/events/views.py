@@ -1,33 +1,59 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .serializers import EventSerializer, EventSignupSerializer
+
 from accounts.permissions import IsOrganization, IsVolunteer
 from .models import Event, EventSignup
-
+from .serializers import EventSerializer, EventSignupSerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
+    # ======================
+    # מי רואה איזה אירועים
+    # ======================
     def get_queryset(self):
         user = self.request.user
 
-        # עמותה רואה רק את האירועים שלה
+        # 👀 לא מחובר (אדם חיצוני) — רואה את כל האירועים (ציבורי)
+        if not user or not user.is_authenticated:
+            return Event.objects.all()
+
+        # 🏢 עמותה — רואה רק את האירועים שלה
         if user.role == user.Role.ORG:
             return Event.objects.filter(organization=user)
 
-        # מתנדב רואה את כל האירועים (או תצמצמי לפי צורך)
+        # 🙋 מתנדב — רואה את כל האירועים
         return Event.objects.all()
 
+    # ======================
+    # הרשאות לפי פעולה
+    # ======================
     def get_permissions(self):
+        # 👀 צפייה ציבורית
+        if self.action in ["list", "retrieve"]:
+            return [permissions.AllowAny()]
+
+        # 🏢 ניהול אירועים — רק עמותה מחוברת
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [permissions.IsAuthenticated(), IsOrganization()]
-        return super().get_permissions()
 
+        # 🙋 הרשמה/ביטול — רק מתנדב מחובר
+        if self.action in ["signup", "cancel"]:
+            return [permissions.IsAuthenticated(), IsVolunteer()]
+
+        # 🏢 צפייה בנרשמים — רק עמותה מחוברת
+        if self.action in ["signups"]:
+            return [permissions.IsAuthenticated(), IsOrganization()]
+
+        # ברירת מחדל (בטיחות)
+        return [permissions.IsAuthenticated()]
+
+    # ======================
+    # יצירת אירוע: organization נקבע מה-user
+    # ======================
     def perform_create(self, serializer):
-        # organization נקבע רק מה-user
         serializer.save(organization=self.request.user)
 
     # ======================
@@ -69,6 +95,7 @@ class EventViewSet(viewsets.ModelViewSet):
     )
     def cancel(self, request, pk=None):
         event = self.get_object()
+
         deleted, _ = EventSignup.objects.filter(
             event=event,
             volunteer=request.user,
