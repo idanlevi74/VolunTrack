@@ -85,8 +85,8 @@ export default function Dashboard() {
         ] = await Promise.all([
           apiFetch("/api/me/"), // 👈 אם אצלך זה אחרת: /api/users/me/
           apiFetch("/api/dashboard/stats/"), // 👈 אם אין כזה endpoint - תגידי ואבנה לך חלופה
-          apiFetch("/api/activities/?status=upcoming"),
-          apiFetch("/api/activities/?status=history"),
+          apiFetch("/api/events/?status=upcoming"),
+          apiFetch("/api/events/?status=history"),
           apiFetch("/api/donations/"),
           apiFetch("/api/org-admin/"),
         ]);

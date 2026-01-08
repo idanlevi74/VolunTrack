@@ -37,10 +37,25 @@ class MeView(APIView):
 
     def get(self, request):
         u = request.user
+
+        full_name = None
+        city = None
+        points = 0
+
+        # רק אם יש פרופיל מתנדב
+        vol = getattr(u, "vol_profile", None)
+        if vol:
+            full_name = vol.full_name
+            city = vol.city
+            points = vol.points
+
         return Response({
             "id": u.id,
             "email": u.email,
             "role": getattr(u, "role", None),
+            "full_name": full_name,
+            "city": city,
+            "points": points,
         })
 
 

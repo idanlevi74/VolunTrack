@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,21 +12,37 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
 
     # ======================
-    # מי רואה איזה אירועים
+    # מי רואה איזה אירועים (+ status filter לדשבורד)
     # ======================
     def get_queryset(self):
         user = self.request.user
+        qs = Event.objects.all()
 
         # 👀 לא מחובר (אדם חיצוני) — רואה את כל האירועים (ציבורי)
         if not user or not user.is_authenticated:
-            return Event.objects.all()
+            return qs
 
         # 🏢 עמותה — רואה רק את האירועים שלה
         if user.role == user.Role.ORG:
-            return Event.objects.filter(organization=user)
+            return qs.filter(organization=user)
 
-        # 🙋 מתנדב — רואה את כל האירועים
-        return Event.objects.all()
+        # 🙋 מתנדב — ברירת מחדל: כל האירועים
+        # אבל: לדשבורד אנחנו רוצים "שלי" לפי status=upcoming/history
+        status_param = self.request.query_params.get("status")
+        if status_param in ("upcoming", "history"):
+            today = timezone.localdate()
+
+            # רק אירועים שהמתנדב נרשם אליהם
+            my_events = qs.filter(signups__volunteer=user).distinct()
+
+            if status_param == "upcoming":
+                # פעילויות קרובות
+                return my_events.filter(date__gte=today).order_by("date")
+
+            # history
+            return my_events.filter(date__lt=today).order_by("-date")
+
+        return qs
 
     # ======================
     # הרשאות לפי פעולה
