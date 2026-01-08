@@ -74,6 +74,8 @@ function initials(text) {
 
 export default function EventDetails() {
   const { id } = useParams();
+
+  // ✅ כפתור הרשמה יוצג רק אם התחברתי
   const token = localStorage.getItem("accessToken") || "";
 
   const [loading, setLoading] = useState(true);
@@ -93,11 +95,11 @@ export default function EventDetails() {
       category: "חלוקת מזון",
       location: "תל אביב",
       city: "תל אביב",
-      date: "2026-01-15",
-      time: "18:00",
+      date: "2026-01-06",
+      time: "20:00",
       needed_volunteers: 12,
-      organization_name: "לב טוב",
-      organization: { org_name: "לב טוב" },
+      // ✅ שם העמותה מגיע מהאירוע
+      organization_name: "מאורות לאריאל",
     }),
     [id]
   );
@@ -116,6 +118,7 @@ export default function EventDetails() {
           return;
         }
 
+        // ✅ ציבורי: אין חובה בטוקן כדי לצפות באירוע
         const data = await fetchJson(`/api/events/${id}/`, {
           token: token || undefined,
           signal: controller.signal,
@@ -136,6 +139,8 @@ export default function EventDetails() {
   const normalized = useMemo(() => {
     if (!event) return null;
 
+    // ✅ חשוב: שם עמותה לפי האירוע
+    // מומלץ שהשרת יחזיר organization_name באופן עקבי
     const orgName =
       event.organization_name ||
       event.org_name ||
@@ -163,10 +168,7 @@ export default function EventDetails() {
       setActionMsg("✅ דמו: נרשמת לאירוע בהצלחה");
       return;
     }
-    if (!token) {
-      setActionMsg("כדי להירשם צריך להתחבר 🙂");
-      return;
-    }
+    if (!token) return; // לא אמור להגיע לפה כי לא מציגים כפתור
 
     setActionLoading(true);
     setActionMsg("");
@@ -190,10 +192,7 @@ export default function EventDetails() {
       setActionMsg("✅ דמו: ביטלת הרשמה");
       return;
     }
-    if (!token) {
-      setActionMsg("כדי לבטל הרשמה צריך להתחבר 🙂");
-      return;
-    }
+    if (!token) return;
 
     setActionLoading(true);
     setActionMsg("");
@@ -221,9 +220,7 @@ export default function EventDetails() {
     String(normalized?.needed) !== "";
 
   const shareText = encodeURIComponent(
-    `מצאתי אירוע התנדבות ב-VolunTrack: ${normalized?.title || ""}${
-      metaDate ? " — " + metaDate : ""
-    }`
+    `מצאתי אירוע התנדבות ב-VolunTrack: ${normalized?.title || ""}${metaDate ? " — " + metaDate : ""}`
   );
   const shareUrl = encodeURIComponent(window.location.href);
 
@@ -264,7 +261,7 @@ export default function EventDetails() {
   return (
     <main className="page">
       <div className="container">
-        {/* breadcrumb */}
+        {/* breadcrumbs */}
         <div className="ed__crumbs">
           <Link className="section__link" to="/explore">
             ← חזרה לכל האירועים
@@ -275,13 +272,14 @@ export default function EventDetails() {
           </Link>
         </div>
 
-        {/* hero card */}
         <section className="ed__card">
+          {/* cover */}
           <header className="ed__cover">
             <div className="ed__coverOverlay" />
 
             <div className="ed__pillsTop">
               {normalized.category ? <span className="ed__pill">{normalized.category}</span> : null}
+              {/* ✅ שם העמותה לפי האירוע */}
               {normalized.orgName ? <span className="ed__pill">{normalized.orgName}</span> : null}
             </div>
 
@@ -299,6 +297,7 @@ export default function EventDetails() {
             </div>
           </header>
 
+          {/* body */}
           <div className="ed__body">
             <div className="ed__grid">
               {/* left */}
@@ -346,31 +345,45 @@ export default function EventDetails() {
                 <div className="ed__orgRow">
                   <div className="ed__avatar">{initials(normalized.orgName)}</div>
                   <div>
+                    {/* ✅ שם עמותה לפי האירוע */}
                     <div className="ed__orgName">{normalized.orgName || "עמותה"}</div>
                     <div className="ed__orgHint">מארגנת האירוע</div>
                   </div>
                 </div>
 
-                <div className="ed__ctaCol">
-                  <button className="btn btn--primary" type="button" onClick={doSignup} disabled={actionLoading}>
-                    {actionLoading ? "מבצע..." : "להירשם לאירוע"}
-                  </button>
+                {/* ✅ כפתור הרשמה מופיע רק אם התחברתי */}
+                {token ? (
+                  <div className="ed__ctaCol">
+                    <button
+                      className="btn btn--primary"
+                      type="button"
+                      onClick={doSignup}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? "מבצע..." : "להירשם לאירוע"}
+                    </button>
 
-                  <button className="btn btn--ghost" type="button" onClick={doCancel} disabled={actionLoading}>
-                    ביטול הרשמה
-                  </button>
-
-                  {!token ? (
+                    <button
+                      className="btn btn--ghost"
+                      type="button"
+                      onClick={doCancel}
+                      disabled={actionLoading}
+                    >
+                      ביטול הרשמה
+                    </button>
+                  </div>
+                ) : (
+                  <div className="ed__ctaCol">
                     <div className="ed__loginHint">
-                      כדי להירשם/לבטל הרשמה צריך להתחבר.
+                      כדי להירשם לאירוע צריך להתחבר 🙂
                       <div className="ed__loginLink">
-                        <Link className="btnSmall" to="/auth">
+                        <Link className="btn btn--primary" to="/auth">
                           להתחברות
                         </Link>
                       </div>
                     </div>
-                  ) : null}
-                </div>
+                  </div>
+                )}
 
                 <div className="ed__quick">
                   <div className="ed__quickTitle">פרטים מהירים</div>
