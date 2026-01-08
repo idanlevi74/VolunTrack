@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../styles/auth.css";
 import { apiFetch } from "../api/client";
 import { useAuth } from "../components/AuthContext";
+import GoogleButton from "../components/GoogleButton";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -13,10 +14,12 @@ export default function Auth() {
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleGoogle = () => {
-    alert("Google auth – עוד לא מחובר (TODO)");
+  const redirectAfterLogin = () => {
+    const from = location.state?.from?.pathname || "/dashboard";
+    navigate(from, { replace: true });
   };
 
   const handleSubmit = async (e) => {
@@ -30,28 +33,51 @@ export default function Auth() {
         body: { email, password },
       });
 
-      if (!data?.access) {
-        throw new Error("Login succeeded but access token is missing");
-      }
+      if (!data?.access) throw new Error("Login succeeded but access token is missing");
 
-      // ✅ שמות אחידים לטוקנים
       localStorage.setItem("accessToken", data.access);
       if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
 
-      // ✅ עדכון ה-Context כדי שה-Navbar יתעדכן מייד
+      // עדיף לשמור user מהשרת אם קיים; אם לא — email זמני
       login({
         token: data.access,
-        user: { email }, // זמני. אם יש לך endpoint /api/me נביא שם מלא
+        user: data.user || { email },
       });
 
-      // ✅ חזרה לעמוד שניסו להגיע אליו (אם הגיעו מ-RequireAuth)
-      const from = location.state?.from?.pathname || "/dashboard";
-      navigate(from, { replace: true });
+      redirectAfterLogin();
     } catch (err) {
       setError(err?.message || "שגיאה בהתחברות");
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ התחברות Google (כפתור אמיתי)
+  const handleGoogleSuccess = async (data) => {
+    try {
+      setError("");
+
+      if (!data?.access) throw new Error("Google login succeeded but access token is missing");
+
+      localStorage.setItem("accessToken", data.access);
+      if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
+
+      login({
+        token: data.access,
+        user: data.user || { email: data?.user?.email },
+      });
+
+      redirectAfterLogin();
+    } catch (err) {
+      setError(err?.message || "שגיאה בהתחברות עם Google");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = (msg) => {
+    setGoogleLoading(false);
+    setError(msg || "שגיאה בהתחברות עם Google");
   };
 
   return (
@@ -60,10 +86,18 @@ export default function Auth() {
       <p className="h2">Sign in to continue</p>
 
       <section className="panel" aria-label="Authentication panel">
-        <button className="btnGoogle" type="button" onClick={handleGoogle} disabled={loading}>
-          <span style={{ fontWeight: 900 }}>G</span>
-          Continue with Google
-        </button>
+        {/* ✅ כפתור גוגל שמחובר לשרת */}
+        <div style={{ display: "grid", gap: 10 }}>
+          <GoogleButton
+            disabled={loading || googleLoading}
+            onStart={() => {
+              setGoogleLoading(true);
+              setError("");
+            }}
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+          />
+        </div>
 
         <div className="sep">OR</div>
 
@@ -78,7 +112,7 @@ export default function Auth() {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               required
-              disabled={loading}
+              disabled={loading || googleLoading}
             />
           </div>
 
@@ -92,7 +126,7 @@ export default function Auth() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               required
-              disabled={loading}
+              disabled={loading || googleLoading}
             />
           </div>
 
@@ -102,7 +136,7 @@ export default function Auth() {
             </div>
           ) : null}
 
-          <button className="btnPrimary" type="submit" disabled={loading}>
+          <button className="btnPrimary" type="submit" disabled={loading || googleLoading}>
             {loading ? "Signing in..." : "Sign in"}
           </button>
 
