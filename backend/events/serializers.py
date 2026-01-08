@@ -26,9 +26,9 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = ["organization", "created_at"]
 
     def get_org_name(self, obj):
-        # כרגע אין לך OrganizationProfile עם name, אז נחזיר email
-        org = getattr(obj, "organization", None)
-        return getattr(org, "email", "") if org else ""
+        org = obj.organization
+        prof = getattr(org, "org_profile", None)
+        return (getattr(prof, "org_name", "") or org.email) if org else ""
 
 
 class EventSignupSerializer(serializers.ModelSerializer):
