@@ -97,7 +97,7 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = "accounts.User"
-GOOGLE_CLIENT_ID = "460517235436-ob7peml5v8v8l8r1h93kfsucmns73hru.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 
 # -----------------------------
 # Database
