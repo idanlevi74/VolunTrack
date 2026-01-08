@@ -4,6 +4,7 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import ExploreEvents from "./pages/ExploreEvents";
+import EventDetails from "./pages/EventDetails";
 import Dashboard from "./pages/Dashboard";
 import Organizations from "./pages/Organizations";
 import CreateEvent from "./pages/CreateEvent";
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/createevent" element={<CreateEvent />} />
         <Route path="/explore" element={<ExploreEvents />} />
+        <Route path= "/events/:id" element={<EventDetails />} />
         <Route path="/organizations" element={<Organizations />} />
         <Route element={<RequireAuth />}>
           <Route path="/dashboard" element={<Dashboard />} />

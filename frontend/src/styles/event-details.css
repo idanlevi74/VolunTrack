@@ -1,0 +1,262 @@
+/* =========================
+   Event Details Page
+   ========================= */
+
+.ed__crumbs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.ed__dot {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.ed__loading {
+  padding: 40px;
+}
+
+.ed__emoji {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.ed__error {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.ed__errorTitle {
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.ed__errorText {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.8;
+}
+
+.ed__errorActions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Card wrapper */
+.ed__card {
+  border-radius: 24px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+}
+
+/* Cover */
+.ed__cover {
+  position: relative;
+  height: 220px;
+  background:
+    radial-gradient(1000px 260px at 20% 20%, rgba(59, 130, 246, 0.35), transparent 60%),
+    radial-gradient(900px 240px at 80% 30%, rgba(16, 185, 129, 0.28), transparent 60%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.72));
+}
+
+.ed__coverOverlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.55));
+}
+
+.ed__pillsTop {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ed__coverBottom {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+}
+
+.ed__title {
+  margin: 0;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 950;
+  letter-spacing: -0.5px;
+  line-height: 1.05;
+}
+
+.ed__metaRow {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Pills */
+.ed__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ed__pillMeta {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Body layout */
+.ed__body {
+  padding: 18px;
+}
+
+.ed__grid {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Left panel */
+.ed__panel {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.ed__panelTitle {
+  font-weight: 950;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.ed__desc {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.9;
+}
+
+.ed__shareRow {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ed__msg {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 900;
+  line-height: 1.7;
+}
+
+/* Aside */
+.ed__aside {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.ed__orgRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ed__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-weight: 950;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  color: rgba(15, 23, 42, 0.9);
+}
+
+.ed__orgName {
+  font-weight: 950;
+}
+
+.ed__orgHint {
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.ed__ctaCol {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.ed__loginHint {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.7;
+  font-size: 13px;
+}
+
+.ed__loginLink {
+  margin-top: 6px;
+}
+
+/* Quick info */
+.ed__quick {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.ed__quickTitle {
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+.ed__quickList {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+/* Footer */
+.ed__footer {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+/* Responsive */
+@media (max-width: 920px) {
+  .ed__grid {
+    grid-template-columns: 1fr;
+  }
+}
