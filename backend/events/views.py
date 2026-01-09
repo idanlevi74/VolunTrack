@@ -181,6 +181,6 @@ class DashboardStatsView(APIView):
         })
 class OrgAdminView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-def get(self, request):
-    u = request.user
-    return Response({ "can_manage": u.role in (u.Role.ORG, u.Role.ADMIN), })
+    def get(self, request):
+        u = request.user
+        return Response({ "can_manage": u.role in (u.Role.ORG, u.Role.ADMIN), })
