@@ -39,6 +39,10 @@ class VolunteerProfile(models.Model):
     phone = models.CharField(max_length=50, blank=True)
     city = models.CharField(max_length=100, blank=True)
     points = models.IntegerField(default=0)
-
+    reliability_score = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        default=0
+    )
     def __str__(self):
         return self.full_name

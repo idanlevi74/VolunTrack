@@ -45,6 +45,10 @@ class EventSignup(models.Model):
         related_name="event_signups",
         limit_choices_to={"role": "VOLUNTEER"},
     )
+    rating = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

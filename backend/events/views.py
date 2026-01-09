@@ -3,7 +3,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from django.db.models import Avg
 from accounts.permissions import IsOrganization, IsVolunteer
 from .models import Event, EventSignup
 from . import serializers as s
@@ -153,7 +153,7 @@ class EventViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 class DashboardStatsView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsVolunteer]
 
     def get(self, request):
         today = timezone.localdate()
@@ -163,18 +163,19 @@ class DashboardStatsView(APIView):
             event__date__lt=today
         ).count()
 
+        avg_rating = EventSignup.objects.filter(
+            volunteer=request.user,
+            rating__isnull=False
+        ).aggregate(avg=Avg("rating"))["avg"]
+
+        reliability = round(avg_rating, 2) if avg_rating else 0
+
+        profile = request.user.vol_profile
+        profile.reliability_score = reliability
+        profile.save(update_fields=["reliability_score"])
+
         return Response({
-            "reliability_score": 100,
+            "reliability_score": reliability,  # ⭐ 1–5
             "activities_count": activities_count,
             "hours_total": 0,
-        })
-
-
-class OrgAdminView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        u = request.user
-        return Response({
-            "can_manage": u.role in (u.Role.ORG, u.Role.ADMIN),
         })
