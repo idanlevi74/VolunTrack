@@ -170,9 +170,10 @@ class DashboardStatsView(APIView):
 
         reliability = round(avg_rating, 2) if avg_rating else 0
 
-        profile = request.user.vol_profile
-        profile.reliability_score = reliability
-        profile.save(update_fields=["reliability_score"])
+        profile = getattr(request.user, "vol_profile", None)
+        if profile:
+            profile.reliability_score = reliability
+            profile.save(update_fields=["reliability_score"])
 
         return Response({
             "reliability_score": reliability,  # ⭐ 1–5
