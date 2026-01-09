@@ -179,3 +179,8 @@ class DashboardStatsView(APIView):
             "activities_count": activities_count,
             "hours_total": 0,
         })
+class OrgAdminView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+def get(self, request):
+    u = request.user
+    return Response({ "can_manage": u.role in (u.Role.ORG, u.Role.ADMIN), })
