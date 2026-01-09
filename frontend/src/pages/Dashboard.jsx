@@ -2,13 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api/client"; // ✅ כמו אצלך בפרויקט
 
-const TABS = [
-  { id: "upcoming", label: "פעילויות קרובות" },
-  { id: "history", label: "היסטוריה" },
-  { id: "donations", label: "תרומות" },
-  { id: "orgAdmin", label: "אזור מנהל עמותה" },
-];
-
 // עוזר קטן ל-DRF pagination
 function asList(payload) {
   if (Array.isArray(payload)) return payload;
@@ -37,6 +30,12 @@ function mapDonation(d) {
   };
 }
 
+// חילוץ role בצורה סופר-סלחנית
+function getRole(profile) {
+  const raw = profile?.role ?? profile?.user?.role ?? profile?.account?.role ?? "";
+  return String(raw || "").toUpperCase();
+}
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("upcoming");
 
@@ -53,8 +52,8 @@ export default function Dashboard() {
   // דמו (למקרה שמשהו נשבר)
   const demo = useMemo(
     () => ({
-      profile: { full_name: "אדיר משה" },
-      stats: { reliability_score: 100, activities_count: 0, hours_total: 0 },
+      profile: { full_name: "אדיר משה", role: "VOLUNTEER" },
+      stats: { reliability_score: 0, activities_count: 0, hours_total: 0 }, // ⭐ 0–5
       upcoming: [],
       history: [],
       donations: [],
@@ -71,40 +70,49 @@ export default function Dashboard() {
       setErr("");
 
       try {
-        /**
-         * 🔧 כאן רק תוודאי שהנתיבים תואמים לשרת שלך.
-         * אם אצלך זה למשל /api/users/me/ או /api/volunteer/me/ פשוט תחליפי פה.
-         */
-        const [
-          me,
-          st,
-          upRaw,
-          histRaw,
-          donsRaw,
-          admin,
-        ] = await Promise.all([
-          apiFetch("/api/me/"), // 👈 אם אצלך זה אחרת: /api/users/me/
-          apiFetch("/api/dashboard/stats/"), // 👈 אם אין כזה endpoint - תגידי ואבנה לך חלופה
+        // 1) תמיד נביא me כדי לדעת role
+        const me = await apiFetch("/api/me/");
+        if (!alive) return;
+
+        const role = getRole(me);
+        const isVolunteer = role === "VOLUNTEER";
+        const isOrg = role === "ORG" || role === "ADMIN";
+
+        // 2) בקשות משותפות
+        const baseRequests = [
           apiFetch("/api/events/?status=upcoming"),
           apiFetch("/api/events/?status=history"),
-          apiFetch("/api/donations/"),
-          apiFetch("/api/org-admin/"),
+        ];
+
+        // 3) בקשות לפי role
+        const volunteerRequests = isVolunteer
+          ? [apiFetch("/api/dashboard/stats/"), apiFetch("/api/donations/")]
+          : [Promise.resolve(null), Promise.resolve([])];
+
+        const orgRequests = isOrg
+          ? [apiFetch("/api/org-admin/")]
+          : [Promise.resolve({ can_manage: false })];
+
+        const [upRaw, histRaw, st, donsRaw, admin] = await Promise.all([
+          ...baseRequests,
+          ...volunteerRequests,
+          ...orgRequests,
         ]);
 
         if (!alive) return;
 
         setProfile(me);
-        setStats(st);
-
         setUpcoming(asList(upRaw).map(mapActivity));
         setHistory(asList(histRaw).map(mapActivity));
+        setStats(st);
         setDonations(asList(donsRaw).map(mapDonation));
-
         setOrgAdmin(admin);
+
+        // ברירת מחדל לטאב: עמותה → אזור מנהל, אחרת → קרובות
+        setActiveTab(isOrg ? "orgAdmin" : "upcoming");
       } catch (e) {
         if (!alive) return;
 
-        // אם ה-API לא זמין/נתיבים לא נכונים, לפחות לא יישבר לך הדף
         setErr(e?.message || "שגיאה בטעינת נתונים");
         setProfile(demo.profile);
         setStats(demo.stats);
@@ -112,6 +120,7 @@ export default function Dashboard() {
         setHistory(demo.history);
         setDonations(demo.donations);
         setOrgAdmin(demo.orgAdmin);
+        setActiveTab("upcoming");
       } finally {
         if (alive) setLoading(false);
       }
@@ -123,10 +132,36 @@ export default function Dashboard() {
     };
   }, [demo]);
 
+  const role = getRole(profile);
+  const isVolunteer = role === "VOLUNTEER";
+  const isOrg = role === "ORG" || role === "ADMIN";
+
+  // טאבים דינמיים
+  const tabs = useMemo(() => {
+    const arr = [
+      { id: "upcoming", label: "פעילויות קרובות" },
+      { id: "history", label: "היסטוריה" },
+      ...(isVolunteer ? [{ id: "donations", label: "תרומות" }] : []),
+      ...(isOrg ? [{ id: "orgAdmin", label: "אזור מנהל עמותה" }] : []),
+    ];
+    return arr;
+  }, [isVolunteer, isOrg]);
+
   const fullName = profile?.full_name || profile?.username || "משתמש/ת";
-  const score = stats?.reliability_score ?? 0;
+
+  // ⭐ אמינות 0–5 (אם אין דירוגים: 0)
+  const score = Number(stats?.reliability_score ?? 0);
   const activitiesCount = stats?.activities_count ?? 0;
   const hoursTotal = stats?.hours_total ?? 0;
+
+  const scoreText =
+    score === 0
+      ? "אין דירוג עדיין"
+      : score >= 4.5
+      ? "מצוין! המשיכו כך ⭐"
+      : score >= 3.5
+      ? "טוב מאוד 🙂"
+      : "אפשר לשפר 💪";
 
   const renderTabContent = () => {
     if (activeTab === "upcoming") {
@@ -194,6 +229,16 @@ export default function Dashboard() {
     }
 
     if (activeTab === "donations") {
+      // אם זה לא מתנדב, לא אמורים להגיע לכאן (אבל נשמור הגנה)
+      if (!isVolunteer) {
+        return (
+          <div className="emptyState">
+            <div style={{ fontSize: 28, marginBottom: 10 }}>🔒</div>
+            אזור זה זמין למתנדבים בלבד
+          </div>
+        );
+      }
+
       if (!donations?.length) {
         return (
           <div className="emptyState">
@@ -218,7 +263,18 @@ export default function Dashboard() {
     }
 
     // orgAdmin
-    if (!orgAdmin?.can_manage) {
+    // אם זה לא עמותה/אדמין, לא אמורים להגיע לכאן
+    if (!isOrg) {
+      return (
+        <div className="emptyState">
+          <div style={{ fontSize: 28, marginBottom: 10 }}>🔒</div>
+          אזור זה זמין לעמותות בלבד
+        </div>
+      );
+    }
+
+    // אם ה-API מחזיר can_manage (אופציונלי) — נכבד אותו
+    if (orgAdmin && orgAdmin.can_manage === false) {
       return (
         <div className="emptyState">
           <div style={{ fontSize: 28, marginBottom: 10 }}>🛠️</div>
@@ -270,7 +326,7 @@ export default function Dashboard() {
           <div className="dashboard">
             <section>
               <div className="tabs">
-                {TABS.map((t) => (
+                {tabs.map((t) => (
                   <button
                     key={t.id}
                     className={`tab ${activeTab === t.id ? "active" : ""}`}
@@ -294,31 +350,34 @@ export default function Dashboard() {
               )}
             </section>
 
-            <aside style={{ display: "grid", gap: 16 }}>
-              <div className="box kpi">
-                <div className="score">{score}</div>
-                <h3 className="kpiTitle">דירוג אמינות</h3>
-                <p className="kpiSub">{score >= 90 ? "מצוין! המשיכו כך" : "אפשר לשפר 💪"}</p>
+            {/* ⭐ צד ימין - אמינות/תגים: רק מתנדב */}
+            {isVolunteer ? (
+              <aside style={{ display: "grid", gap: 16 }}>
+                <div className="box kpi">
+                  <div className="score">{score}</div>
+                  <h3 className="kpiTitle">דירוג אמינות</h3>
+                  <p className="kpiSub">{scoreText}</p>
 
-                <div className="kpiRow">
-                  <div>
-                    <div className="kpiNum">{activitiesCount}</div>
-                    <div className="kpiLbl">פעילויות</div>
-                  </div>
-                  <div>
-                    <div className="kpiNum">{hoursTotal}</div>
-                    <div className="kpiLbl">שעות</div>
+                  <div className="kpiRow">
+                    <div>
+                      <div className="kpiNum">{activitiesCount}</div>
+                      <div className="kpiLbl">פעילויות</div>
+                    </div>
+                    <div>
+                      <div className="kpiNum">{hoursTotal}</div>
+                      <div className="kpiLbl">שעות</div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="box boxPad">
-                <h3 style={{ margin: 0, fontWeight: 900 }}>התגים שלי</h3>
-                <p style={{ margin: "10px 0 0", color: "var(--muted)", fontWeight: 800 }}>
-                  טרם צברתם תגים. הירשמו לפעילות ראשונה!
-                </p>
-              </div>
-            </aside>
+                <div className="box boxPad">
+                  <h3 style={{ margin: 0, fontWeight: 900 }}>התגים שלי</h3>
+                  <p style={{ margin: "10px 0 0", color: "var(--muted)", fontWeight: 800 }}>
+                    טרם צברתם תגים. הירשמו לפעילות ראשונה!
+                  </p>
+                </div>
+              </aside>
+            ) : null}
           </div>
         )}
       </div>
