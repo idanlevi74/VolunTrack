@@ -10,6 +10,7 @@ import Organizations from "./pages/Organizations";
 import CreateEvent from "./pages/CreateEvent";
 import Signup from "./pages/Signup";
 import RequireAuth from "./components/RequireAuth";
+import Donate from "./pages/Donate";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/explore" element={<ExploreEvents />} />
         <Route path= "/events/:id" element={<EventDetails />} />
         <Route path="/organizations" element={<Organizations />} />
+        <Route path="/donate/:orgId" element={<Donate />} />
         <Route element={<RequireAuth />}>
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
