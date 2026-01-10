@@ -1,13 +1,14 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 export async function apiFetch(path, { method = "GET", body, token } = {}) {
-  // אם לא העבירו token ידנית, ניקח מה-localStorage
   const accessToken = token || localStorage.getItem("accessToken");
 
   const headers = { "Content-Type": "application/json" };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`;
+
+  const res = await fetch(url, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -21,9 +22,21 @@ export async function apiFetch(path, { method = "GET", body, token } = {}) {
     data = text || null;
   }
 
-  if (!res.ok) {
-    const msg = (data && (data.detail || data.message)) || `HTTP ${res.status}`;
-    throw new Error(msg);
+  // ✅ טיפול ייעודי ב-401/403 כדי להבין מהר
+  if (res.status === 401) {
+    // אופציונלי: לנקות טוקנים תקולים
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    throw new Error("לא מחובר/ת (401). התחברי מחדש.");
   }
+
+  if (!res.ok) {
+    const msg =
+      (data && (data.detail || data.message || data.error)) ||
+      `HTTP ${res.status}`;
+    // עוזר דיבאג: תראי בדיוק איזה URL נכשל
+    throw new Error(`${msg} | ${method} ${url}`);
+  }
+
   return data;
 }
