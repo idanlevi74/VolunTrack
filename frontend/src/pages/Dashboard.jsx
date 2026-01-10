@@ -24,7 +24,14 @@ function mapActivity(a) {
 function mapDonation(d) {
   return {
     id: d.id ?? d.pk,
-    org_name: d.org_name ?? d.organization_name ?? d.org?.name ?? "",
+    // לנדיבות: אפשר ששרת יחזיר org_name, אבל נשמור גם על שדות אחרים
+    org_name:
+      d.org_name ??
+      d.organization_name ??
+      d.organization?.org_name ??
+      d.organization?.name ??
+      d.org?.name ??
+      "",
     amount: d.amount ?? d.sum ?? d.total ?? "",
     date: d.date ?? d.created_at ?? "",
   };
@@ -37,17 +44,24 @@ function getRole(profile) {
 }
 
 export default function Dashboard() {
+  // 🔁 ברירת מחדל: מתנדב "קרובות", עמותה "אירועים קרובים"
   const [activeTab, setActiveTab] = useState("upcoming");
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   const [profile, setProfile] = useState(null);
+
+  // מתנדב
   const [stats, setStats] = useState(null);
   const [upcoming, setUpcoming] = useState([]);
   const [history, setHistory] = useState([]);
   const [donations, setDonations] = useState([]);
-  const [orgAdmin, setOrgAdmin] = useState(null);
+
+  // עמותה
+  const [orgUpcoming, setOrgUpcoming] = useState([]);
+  const [orgHistory, setOrgHistory] = useState([]);
+  const [orgDonations, setOrgDonations] = useState([]);
 
   // דמו (למקרה שמשהו נשבר)
   const demo = useMemo(
@@ -57,7 +71,9 @@ export default function Dashboard() {
       upcoming: [],
       history: [],
       donations: [],
-      orgAdmin: { can_manage: false },
+      orgUpcoming: [],
+      orgHistory: [],
+      orgDonations: [],
     }),
     []
   );
@@ -78,38 +94,50 @@ export default function Dashboard() {
         const isVolunteer = role === "VOLUNTEER";
         const isOrg = role === "ORG" || role === "ADMIN";
 
-        // 2) בקשות משותפות
-        const baseRequests = [
+        // 2) אירועים - לכל תפקיד יש רשימה משלו
+        // מתנדב: היסטוריה/קרובות של הנרשמים (כבר ממומש בשרת לפי status param)
+        // עמותה: צריך שהשרת יחזיר אירועים של העמותה לפי status param (כבר ממומש ב-EventViewSet לפי role)
+        const commonEventRequests = [
           apiFetch("/api/events/?status=upcoming"),
           apiFetch("/api/events/?status=history"),
         ];
 
-        // 3) בקשות לפי role
-        const volunteerRequests = isVolunteer
+        // 3) לפי role:
+        // מתנדב: סטטיסטיקות + תרומות שתרם (נניח שכבר טיפלת בשרת כדי ש-/api/donations/ יחזיר "שלי")
+        // עמותה: תרומות שקיבלה (נניח שכבר טיפלת בשרת שיחזיר לפי organization)
+        const extraRequests = isVolunteer
           ? [apiFetch("/api/dashboard/stats/"), apiFetch("/api/donations/")]
+          : isOrg
+          ? [Promise.resolve(null), apiFetch("/api/donations/")]
           : [Promise.resolve(null), Promise.resolve([])];
 
-        const orgRequests = isOrg
-          ? [apiFetch("/api/org-admin/")]
-          : [Promise.resolve({ can_manage: false })];
-
-        const [upRaw, histRaw, st, donsRaw, admin] = await Promise.all([
-          ...baseRequests,
-          ...volunteerRequests,
-          ...orgRequests,
+        const [evUpRaw, evHistRaw, st, donsRaw] = await Promise.all([
+          ...commonEventRequests,
+          ...extraRequests,
         ]);
 
         if (!alive) return;
 
         setProfile(me);
-        setUpcoming(asList(upRaw).map(mapActivity));
-        setHistory(asList(histRaw).map(mapActivity));
-        setStats(st);
-        setDonations(asList(donsRaw).map(mapDonation));
-        setOrgAdmin(admin);
 
-        // ברירת מחדל לטאב: עמותה → אזור מנהל, אחרת → קרובות
-        setActiveTab(isOrg ? "orgAdmin" : "upcoming");
+        if (isVolunteer) {
+          setUpcoming(asList(evUpRaw).map(mapActivity));
+          setHistory(asList(evHistRaw).map(mapActivity));
+          setStats(st);
+          setDonations(asList(donsRaw).map(mapDonation));
+          setActiveTab("upcoming");
+        } else if (isOrg) {
+          // אותם endpoints, אבל בשרת get_queryset מחזיר אירועים של העמותה
+          setOrgUpcoming(asList(evUpRaw).map(mapActivity));
+          setOrgHistory(asList(evHistRaw).map(mapActivity));
+          setOrgDonations(asList(donsRaw).map(mapDonation));
+          setActiveTab("orgUpcoming");
+        } else {
+          // fallback
+          setUpcoming(asList(evUpRaw).map(mapActivity));
+          setHistory(asList(evHistRaw).map(mapActivity));
+          setActiveTab("upcoming");
+        }
       } catch (e) {
         if (!alive) return;
 
@@ -119,7 +147,9 @@ export default function Dashboard() {
         setUpcoming(demo.upcoming);
         setHistory(demo.history);
         setDonations(demo.donations);
-        setOrgAdmin(demo.orgAdmin);
+        setOrgUpcoming(demo.orgUpcoming);
+        setOrgHistory(demo.orgHistory);
+        setOrgDonations(demo.orgDonations);
         setActiveTab("upcoming");
       } finally {
         if (alive) setLoading(false);
@@ -136,18 +166,25 @@ export default function Dashboard() {
   const isVolunteer = role === "VOLUNTEER";
   const isOrg = role === "ORG" || role === "ADMIN";
 
-  // טאבים דינמיים
   const tabs = useMemo(() => {
-    const arr = [
-      { id: "upcoming", label: "פעילויות קרובות" },
-      { id: "history", label: "היסטוריה" },
-      ...(isVolunteer ? [{ id: "donations", label: "תרומות" }] : []),
-      ...(isOrg ? [{ id: "orgAdmin", label: "אזור מנהל עמותה" }] : []),
-    ];
-    return arr;
+    if (isVolunteer) {
+      return [
+        { id: "upcoming", label: "פעילויות קרובות" },
+        { id: "history", label: "פעילויות שהיו" },
+        { id: "donations", label: "התרומות שלי" },
+      ];
+    }
+    if (isOrg) {
+      return [
+        { id: "orgUpcoming", label: "אירועים קרובים" },
+        { id: "orgHistory", label: "אירועים שהיו" },
+        { id: "orgDonations", label: "תרומות שהתקבלו" },
+      ];
+    }
+    return [{ id: "upcoming", label: "פעילויות" }];
   }, [isVolunteer, isOrg]);
 
-  const fullName = profile?.full_name || profile?.username || "משתמש/ת";
+  const fullName = profile?.full_name || profile?.username || profile?.email || "משתמש/ת";
 
   // ⭐ אמינות 0–5 (אם אין דירוגים: 0)
   const score = Number(stats?.reliability_score ?? 0);
@@ -156,152 +193,220 @@ export default function Dashboard() {
 
   const scoreText =
     score === 0
-      ? "אין דירוג עדיין"
+      ? "עוד אין דירוג – זה יתחיל אחרי דירוג ראשון 🙂"
       : score >= 4.5
       ? "מצוין! המשיכו כך ⭐"
       : score >= 3.5
       ? "טוב מאוד 🙂"
       : "אפשר לשפר 💪";
 
-  const renderTabContent = () => {
-    if (activeTab === "upcoming") {
-      if (!upcoming?.length) {
-        return (
-          <div className="emptyState">
-            <div style={{ fontSize: 28, marginBottom: 10 }}>📅</div>
-            אין פעילויות קרובות
-            <br />
-            זה הזמן למצוא את ההתנדבות הבאה שלך
-            <div style={{ marginTop: 14 }}>
-              <Link className="btnSmall" to="/explore">
-                חיפוש התנדבויות
-              </Link>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="grid">
-          {upcoming.map((a) => (
-            <div key={a.id} className="card">
-              <div className="cardTitle">{a.title}</div>
-              <div className="cardMeta">
-                {a.org_name} {a.org_name ? "•" : ""} {a.location}{" "}
-                {a.location ? "•" : ""} {a.category}
-              </div>
-              <div className="cardActions">
-                <Link className="btnSmall" to={`/events/${a.id}`}>
-                  לפרטים
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    if (activeTab === "history") {
-      if (!history?.length) {
-        return (
-          <div className="emptyState">
-            <div style={{ fontSize: 28, marginBottom: 10 }}>🕓</div>
-            אין היסטוריה עדיין
-            <br />
-            אחרי שתשתתפו בפעילות – היא תופיע כאן
-          </div>
-        );
-      }
-
-      return (
-        <div className="grid">
-          {history.map((a) => (
-            <div key={a.id} className="card">
-              <div className="cardTitle">{a.title}</div>
-              <div className="cardMeta">
-                {a.org_name} {a.org_name ? "•" : ""} {a.location}{" "}
-                {a.location ? "•" : ""} {a.date}
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    if (activeTab === "donations") {
-      // אם זה לא מתנדב, לא אמורים להגיע לכאן (אבל נשמור הגנה)
-      if (!isVolunteer) {
-        return (
-          <div className="emptyState">
-            <div style={{ fontSize: 28, marginBottom: 10 }}>🔒</div>
-            אזור זה זמין למתנדבים בלבד
-          </div>
-        );
-      }
-
-      if (!donations?.length) {
-        return (
-          <div className="emptyState">
-            <div style={{ fontSize: 28, marginBottom: 10 }}>💝</div>
-            אין תרומות להצגה
-          </div>
-        );
-      }
-
-      return (
-        <div className="grid">
-          {donations.map((d) => (
-            <div key={d.id} className="card">
-              <div className="cardTitle">{d.org_name}</div>
-              <div className="cardMeta">
-                סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {d.date}
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    // orgAdmin
-    // אם זה לא עמותה/אדמין, לא אמורים להגיע לכאן
-    if (!isOrg) {
+  const renderVolunteerUpcoming = () => {
+    if (!upcoming?.length) {
       return (
         <div className="emptyState">
-          <div style={{ fontSize: 28, marginBottom: 10 }}>🔒</div>
-          אזור זה זמין לעמותות בלבד
-        </div>
-      );
-    }
-
-    // אם ה-API מחזיר can_manage (אופציונלי) — נכבד אותו
-    if (orgAdmin && orgAdmin.can_manage === false) {
-      return (
-        <div className="emptyState">
-          <div style={{ fontSize: 28, marginBottom: 10 }}>🛠️</div>
-          אין לך הרשאות ניהול עמותה
+          <div style={{ fontSize: 28, marginBottom: 10 }}>📅</div>
+          אין פעילויות קרובות
+          <br />
+          זה הזמן למצוא את ההתנדבות הבאה שלך
+          <div style={{ marginTop: 14 }}>
+            <Link className="btnSmall" to="/explore">
+              חיפוש התנדבויות
+            </Link>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="box boxPad">
-        <h3 style={{ margin: 0, fontWeight: 900 }}>אזור מנהל עמותה</h3>
-        <p style={{ margin: "10px 0 0", color: "var(--muted)", fontWeight: 800 }}>
-          כאן נציג כלים לניהול אירועים, מתנדבים ודוחות.
-        </p>
-        <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link className="btnSmall" to="/org-admin/events">
-            ניהול אירועים
-          </Link>
-          <Link className="btnSmall" to="/org-admin/volunteers">
-            מתנדבים
-          </Link>
-          <Link className="btnSmall" to="/org-admin/reports">
-            דוחות
-          </Link>
-        </div>
+      <div className="grid">
+        {upcoming.map((a) => (
+          <div key={a.id} className="card">
+            <div className="cardTitle">{a.title}</div>
+            <div className="cardMeta">
+              {a.org_name} {a.org_name ? "•" : ""} {a.location} {a.location ? "•" : ""} {a.category}
+            </div>
+            <div className="cardActions">
+              <Link className="btnSmall" to={`/events/${a.id}`}>
+                לפרטים
+              </Link>
+            </div>
+          </div>
+        ))}
       </div>
     );
+  };
+
+  const renderVolunteerHistory = () => {
+    if (!history?.length) {
+      return (
+        <div className="emptyState">
+          <div style={{ fontSize: 28, marginBottom: 10 }}>🕓</div>
+          עדיין אין פעילויות שהיו
+          <br />
+          אחרי שתשתתפו בפעילות – היא תופיע כאן ✨
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid">
+        {history.map((a) => (
+          <div key={a.id} className="card">
+            <div className="cardTitle">{a.title}</div>
+            <div className="cardMeta">
+              {a.org_name} {a.org_name ? "•" : ""} {a.location} {a.location ? "•" : ""} {a.date}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderVolunteerDonations = () => {
+    if (!donations?.length) {
+      return (
+        <div className="emptyState">
+          <div style={{ fontSize: 28, marginBottom: 10 }}>💝</div>
+          עדיין לא תרמת דרך VolunTrack
+          <br />
+          כשתרצי—תרומה קטנה עושה הבדל גדול 🫶
+          <div style={{ marginTop: 14 }}>
+            <Link className="btnSmall" to="/organizations">
+              לעמותות ותרומה
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid">
+        {donations.map((d) => (
+          <div key={d.id} className="card">
+            <div className="cardTitle">{d.org_name || "עמותה"}</div>
+            <div className="cardMeta">
+              סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {d.date}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderOrgUpcoming = () => {
+    if (!orgUpcoming?.length) {
+      return (
+        <div className="emptyState">
+          <div style={{ fontSize: 28, marginBottom: 10 }}>📅</div>
+          אין אירועים קרובים כרגע
+          <br />
+          כשייצרת אירוע חדש – הוא יופיע פה
+          <div style={{ marginTop: 14 }}>
+            <Link className="btnSmall" to="/org-admin/events">
+              ניהול אירועים
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid">
+        {orgUpcoming.map((a) => (
+          <div key={a.id} className="card">
+            <div className="cardTitle">{a.title}</div>
+            <div className="cardMeta">
+              {a.location} {a.location ? "•" : ""} {a.category} {a.category ? "•" : ""} {a.date}
+            </div>
+            <div className="cardActions">
+              <Link className="btnSmall" to={`/events/${a.id}`}>
+                לפרטים
+              </Link>
+              <Link className="btnSmall" to={`/org-admin/rate/${a.id}`}>
+                תדרג את המשתתפים
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderOrgHistory = () => {
+    if (!orgHistory?.length) {
+      return (
+        <div className="emptyState">
+          <div style={{ fontSize: 28, marginBottom: 10 }}>🕓</div>
+          אין אירועים שהיו עדיין
+          <br />
+          אחרי אירוע ראשון – הוא יופיע כאן
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid">
+        {orgHistory.map((a) => (
+          <div key={a.id} className="card">
+            <div className="cardTitle">{a.title}</div>
+            <div className="cardMeta">
+              {a.location} {a.location ? "•" : ""} {a.category} {a.category ? "•" : ""} {a.date}
+            </div>
+            <div className="cardActions">
+              <Link className="btnSmall" to={`/events/${a.id}`}>
+                לפרטים
+              </Link>
+              <Link className="btnSmall" to={`/org-admin/rate/${a.id}`}>
+                תדרג את המשתתפים
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderOrgDonations = () => {
+    if (!orgDonations?.length) {
+      return (
+        <div className="emptyState">
+          <div style={{ fontSize: 28, marginBottom: 10 }}>💸</div>
+          עדיין לא התקבלו תרומות
+          <br />
+          כשייכנסו תרומות – הן יופיעו כאן 🙏
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid">
+        {orgDonations.map((d) => (
+          <div key={d.id} className="card">
+            <div className="cardTitle">{d.org_name || "תרומה"}</div>
+            <div className="cardMeta">
+              סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {d.date}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderTabContent = () => {
+    if (isVolunteer) {
+      if (activeTab === "upcoming") return renderVolunteerUpcoming();
+      if (activeTab === "history") return renderVolunteerHistory();
+      if (activeTab === "donations") return renderVolunteerDonations();
+    }
+
+    if (isOrg) {
+      if (activeTab === "orgUpcoming") return renderOrgUpcoming();
+      if (activeTab === "orgHistory") return renderOrgHistory();
+      if (activeTab === "orgDonations") return renderOrgDonations();
+    }
+
+    // fallback
+    return renderVolunteerUpcoming();
   };
 
   return (
@@ -313,9 +418,7 @@ export default function Dashboard() {
         {err ? (
           <div className="box boxPad" style={{ borderColor: "rgba(239,68,68,.35)" }}>
             <div style={{ fontWeight: 900, marginBottom: 6 }}>אופס 😅</div>
-            <div style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.8 }}>
-              {err}
-            </div>
+            <div style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.8 }}>{err}</div>
             <div style={{ marginTop: 12 }}>
               <button className="btnSmall" type="button" onClick={() => window.location.reload()}>
                 נסי שוב
@@ -350,7 +453,7 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* ⭐ צד ימין - אמינות/תגים: רק מתנדב */}
+            {/* ⭐ צד ימין - אמינות/תגים: רק מתנדב (כמו שהיה אצלך) */}
             {isVolunteer ? (
               <aside style={{ display: "grid", gap: 16 }}>
                 <div className="box kpi">
