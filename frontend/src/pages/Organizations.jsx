@@ -6,7 +6,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 // fetch helper (מגן גם מפני HTML)
 async function fetchJson(path, { token, signal, method = "GET", body } = {}) {
   const headers = { "Content-Type": "application/json" };
-  // ✅ שולחים Authorization רק אם באמת יש טוקן
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -42,8 +41,21 @@ async function fetchJson(path, { token, signal, method = "GET", body } = {}) {
   return data;
 }
 
+// מזהה שדה תרומה אפשרי מה-API (תמיכה בכמה שמות)
+function pickDonationUrl(o) {
+  return (
+    o?.donation_url ||
+    o?.donate_url ||
+    o?.donationLink ||
+    o?.donateLink ||
+    o?.donation_page ||
+    o?.donations_url ||
+    ""
+  );
+}
+
 export default function Organizations() {
-  // ✅ דף ציבורי: לא חובה טוקן בכלל. אם יש — נשתמש, אם אין — לא נשלח.
+  // דף ציבורי: לא חובה טוקן. אם יש — נשתמש
   const token = localStorage.getItem("accessToken") || "";
 
   const [loading, setLoading] = useState(true);
@@ -59,6 +71,7 @@ export default function Organizations() {
         description: "תיאור קצר על העמותה ומה היא עושה",
         phone: "",
         website: "",
+        donation_url: "https://example.com/donate", // 👈 דמו
       },
       {
         id: "demo-2",
@@ -91,8 +104,6 @@ export default function Organizations() {
           return;
         }
 
-        // ✅ Endpoint ציבורי (AllowAny בצד Django)
-        // שולחים token רק אם קיים בפועל
         const data = await fetchJson("/api/organizations/", {
           token: token || undefined,
           signal: controller.signal,
@@ -154,6 +165,10 @@ export default function Organizations() {
 
               const detailsTo = id ? `/organizations/${id}` : null;
 
+              // ✅ תרומה
+              const donationUrl = pickDonationUrl(o);
+              const donateToInternal = id ? `/donate/${id}` : "/donate"; // fallback
+
               return (
                 <article className="card" key={String(id ?? name)}>
                   <div className="card__thumb" />
@@ -175,7 +190,7 @@ export default function Organizations() {
                       </div>
                     )}
 
-                    <div className="card__actions">
+                    <div className="card__actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       {detailsTo ? (
                         <Link className="btnSmall" to={detailsTo}>
                           לפרטי עמותה
@@ -189,6 +204,17 @@ export default function Organizations() {
                       <Link className="btnSmall" to="/explore">
                         למצוא התנדבות
                       </Link>
+
+                      {/* ✅ כפתור תרומה */}
+                      {donationUrl ? (
+                        <a className="btnSmall" href={donationUrl} target="_blank" rel="noreferrer">
+                          לתרומה 💝
+                        </a>
+                      ) : (
+                        <Link className="btnSmall" to={donateToInternal}>
+                          לתרומה 💝
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </article>
