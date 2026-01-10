@@ -28,9 +28,7 @@ class DonationCampaignSerializer(serializers.ModelSerializer):
 
 class DonationSerializer(serializers.ModelSerializer):
     donor_display_name = serializers.SerializerMethodField()
-    campaign_title = serializers.CharField(
-        source="campaign.title", read_only=True
-    )
+    campaign_title = serializers.CharField(source="campaign.title", read_only=True)
 
     class Meta:
         model = Donation
@@ -46,7 +44,6 @@ class DonationSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = [
-            "organization",
             "created_at",
             "donor_display_name",
         ]
