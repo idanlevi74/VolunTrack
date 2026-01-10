@@ -43,12 +43,16 @@ class DonationViewSet(viewsets.ModelViewSet):
     serializer_class = DonationSerializer
 
     def get_permissions(self):
-        # ✅ כל אחד יכול ליצור תרומה (גם בלי התחברות)
+        # ✅ כל אחד יכול לתרום (POST) גם בלי התחברות
         if self.action == "create":
             return [permissions.AllowAny()]
 
-        # ✅ צפייה/ניהול תרומות — רק עמותה/אדמין
-        if self.action in ["list", "retrieve", "update", "partial_update", "destroy"]:
+        # ✅ רשימה/פרטים למשתמש מחובר (אבל נראה ב-queryset מה מותר לראות)
+        if self.action in ["list", "retrieve"]:
+            return [permissions.IsAuthenticated()]
+
+        # ✅ עריכה/מחיקה רק עמותה/אדמין (אם בכלל צריך)
+        if self.action in ["update", "partial_update", "destroy"]:
             return [permissions.IsAuthenticated(), IsOrganization()]
 
         return [permissions.IsAuthenticated()]
@@ -68,26 +72,5 @@ class DonationViewSet(viewsets.ModelViewSet):
         if user.role == user.Role.ADMIN:
             return qs
 
-        # מתנדב/אחרים לא רואים (כדי לא לחשוף תרומות)
-        return Donation.objects.none()
-
-    def perform_create(self, serializer):
-        user = getattr(self.request, "user", None)
-
-        # אם תורם מחובר — נשמור donor_user
-        if user and user.is_authenticated:
-            # אם לא נשלח donor_name, אפשר לנסות להביא מהפרופיל (מתנדב)
-            default_name = ""
-            vol = getattr(user, "vol_profile", None)
-            if vol:
-                default_name = vol.full_name
-
-            serializer.save(
-                donor_user=user,
-                donor_name=serializer.validated_data.get("donor_name") or default_name or "אנונימי",
-            )
-        else:
-            # לא מחובר — אנונימי אם לא שלח שם
-            serializer.save(
-                donor_name=serializer.validated_data.get("donor_name") or "אנונימי",
-            )
+        # מתנדב/משתמש רגיל רואה רק תרומות שהוא תרם כשהיה מחובר
+        return qs.filter(donor_user=user)
