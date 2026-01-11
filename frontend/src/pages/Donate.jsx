@@ -2,6 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/client";
 
+// Stripe
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
 function asList(payload) {
   if (Array.isArray(payload)) return payload;
   if (payload?.results && Array.isArray(payload.results)) return payload.results;
@@ -17,6 +23,76 @@ function orgNameFrom(o) {
   return o?.org_name || o?.name || o?.title || o?.email || "עמותה";
 }
 
+/** ======================
+ * Checkout component
+ * ====================== */
+function DonationCheckout({ onBack, onPaid }) {
+  const stripe = useStripe();
+  const elements = useElements();
+
+  const [paying, setPaying] = useState(false);
+  const [payErr, setPayErr] = useState("");
+
+  async function payNow() {
+    setPayErr("");
+    if (!stripe || !elements) return;
+
+    setPaying(true);
+    try {
+      // Payment Element flow
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          // לא חייבים return_url אם אנחנו מציגים הודעה באותו עמוד,
+          // אבל Stripe לפעמים דורש. עדיף לשים.
+          return_url: window.location.href,
+        },
+        redirect: "if_required",
+      });
+
+      if (error) {
+        setPayErr(error.message || "שגיאה בתשלום");
+      } else {
+        // הצלחה (בחלק מהמקרים webhook יעדכן סטטוס; פה אנחנו מציגים success UI)
+        onPaid?.();
+      }
+    } catch (e) {
+      setPayErr(e?.message || "שגיאה בתשלום");
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div style={{ fontWeight: 900, marginBottom: 10 }}>תשלום מאובטח</div>
+
+      {payErr ? <div className="alert error">אופס 😅 {payErr}</div> : null}
+
+      <div style={{ border: "1px solid var(--border)", borderRadius: 14, padding: 14 }}>
+        <PaymentElement />
+      </div>
+
+      <div className="actions" style={{ marginTop: 14 }}>
+        <button className="btn primary" type="button" onClick={payNow} disabled={!stripe || paying}>
+          {paying ? "משלם..." : "שלם עכשיו"}
+        </button>
+
+        <button className="btn ghost" type="button" onClick={onBack} disabled={paying}>
+          חזרה לעריכת פרטים
+        </button>
+
+        <p className="note" style={{ margin: 0 }}>
+          זהו מצב בדיקה (Test Mode) — לא מתבצע חיוב אמיתי.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** ======================
+ * Main page
+ * ====================== */
 export default function Donate() {
   const { orgId } = useParams();
   const navigate = useNavigate();
@@ -28,23 +104,27 @@ export default function Donate() {
 
   const [org, setOrg] = useState(null);
 
-  // סכומים מה-HTML
+  // Stripe clientSecret state
+  const [clientSecret, setClientSecret] = useState("");
+  const [createdDonationId, setCreatedDonationId] = useState(null);
+
+  // סכומים
   const quickAmounts = useMemo(() => [50, 100, 250, 500], []);
   const [amount, setAmount] = useState(0);
   const [amountInput, setAmountInput] = useState("");
 
-  // פרטי תורם (UI)
+  // פרטי תורם
   const [donorName, setDonorName] = useState("");
   const [donorEmail, setDonorEmail] = useState("");
   const [donorPhone, setDonorPhone] = useState("");
 
-  // פרטי חשבונית (UI בלבד)
+  // חשבונית (UI בלבד)
   const [billName, setBillName] = useState("");
   const [billId, setBillId] = useState("");
   const [billAddress, setBillAddress] = useState("");
 
   // ======================
-  // Load organization details
+  // Load organization
   // ======================
   useEffect(() => {
     let alive = true;
@@ -57,14 +137,11 @@ export default function Donate() {
       try {
         if (!orgId) throw new Error("חסר מזהה עמותה בכתובת");
 
-        // GET /api/organizations/:id/
         const data = await apiFetch(`/api/organizations/${orgId}/`);
         if (!alive) return;
         setOrg(data);
       } catch (e) {
         if (!alive) return;
-
-        // fallback: GET /api/organizations/ ואז find לפי id
         try {
           const list = await apiFetch("/api/organizations/");
           const items = asList(list);
@@ -102,6 +179,9 @@ export default function Donate() {
   function resetForm() {
     setErr("");
     setOkMsg("");
+    setClientSecret("");
+    setCreatedDonationId(null);
+
     setAmount(0);
     setAmountInput("");
     setDonorName("");
@@ -113,7 +193,7 @@ export default function Donate() {
   }
 
   // ======================
-  // Submit donation (לפי Serializer שלך)
+  // 1) Create Donation  2) Create Stripe intent
   // ======================
   async function submitDonation(e) {
     e.preventDefault();
@@ -125,40 +205,44 @@ export default function Donate() {
       return;
     }
 
-    // donor_name כן קיים אצלך בסיריאלייזר
-    // אם תרצי לאפשר אנונימי — אפשר להוריד required.
     if (!donorName.trim()) {
       setErr("נא למלא שם מלא (או כתבי 'אנונימי')");
       return;
     }
 
-    // ✅ payload מותאם לסיריאלייזר DonationSerializer שלך
-    const payload = {
-      organization: Number(orgId) || orgId,
-      amount,
-      currency: "ILS",
-      donor_name: donorName.trim(),
-      // campaign: null, // אם תרצי בעתיד
-      // ⚠️ לא שולחים donor_email / phone / invoice כי אין בסיריאלייזר כרגע
-    };
-
     setPosting(true);
     try {
+      // 1) create donation in your DB
+      const payload = {
+        organization: Number(orgId) || orgId,
+        amount,
+        currency: "ils", // ✅ stripe expects lowercase currency
+        donor_name: donorName.trim(),
+        donor_email: donorEmail.trim(), // אם הוספת לשדות serializer - אחלה. אם לא, תמחקי
+      };
+
       const created = await apiFetch("/api/donations/", {
         method: "POST",
         body: payload,
       });
 
-      const id = created?.id ?? created?.pk ?? "";
-      setOkMsg(`התרומה נשמרה בהצלחה${id ? ` (מס' ${id})` : ""} 💝`);
+      const donationId = created?.id ?? created?.pk;
+      if (!donationId) throw new Error("נוצרה תרומה אך לא התקבל מזהה (id)");
 
-      // נשאיר אימייל/חשבונית בטופס (כי זה UI),
-      // אבל אם את מעדיפה לנקות הכל:
-      // resetForm();
-      setAmount(0);
-      setAmountInput("");
+      setCreatedDonationId(donationId);
+
+      // 2) ask backend to create PaymentIntent and return client_secret
+      const intentRes = await apiFetch("/api/payments/donations/create-intent/", {
+        method: "POST",
+        body: { donation_id: donationId },
+      });
+
+      const cs = intentRes?.client_secret;
+      if (!cs) throw new Error("לא התקבל client_secret מ-Stripe");
+
+      setClientSecret(cs);
     } catch (e2) {
-      setErr(e2?.message || "שגיאה ביצירת תרומה");
+      setErr(e2?.message || "שגיאה ביצירת תרומה/תשלום");
     } finally {
       setPosting(false);
     }
@@ -367,17 +451,14 @@ export default function Donate() {
         </div>
 
         {err ? <div className="alert error">אופס 😅 {err}</div> : null}
+
         {okMsg ? (
           <div className="alert ok">
             <div style={{ fontWeight: 900, marginBottom: 6 }}>הצלחה ✅</div>
             {okMsg}
             <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link className="topLink" to="/organizations">
-                חזרה לעמותות
-              </Link>
-              <Link className="topLink" to="/explore">
-                למצוא התנדבות
-              </Link>
+              <Link className="topLink" to="/organizations">חזרה לעמותות</Link>
+              <Link className="topLink" to="/explore">למצוא התנדבות</Link>
             </div>
           </div>
         ) : null}
@@ -395,139 +476,160 @@ export default function Donate() {
               </div>
             </div>
           ) : (
-            <form className="form" onSubmit={submitDonation}>
-              {/* סכום */}
-              <div>
-                <div className="sectionTitle">סכום תרומה</div>
-
-                <div className="amountButtons">
-                  {quickAmounts.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className="amountBtn"
-                      onClick={() => pickQuick(v)}
-                      aria-pressed={amount === v}
-                      disabled={posting}
-                    >
-                      ₪{v}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="field" style={{ marginTop: 10 }}>
-                  <label>סכום אחר</label>
-                  <input
-                    type="number"
-                    min={1}
-                    placeholder="הכנס סכום בש״ח"
-                    value={amountInput}
-                    onChange={onAmountChange}
-                    disabled={posting}
+            <>
+              {/* אם יש clientSecret – מציגים תשלום Stripe */}
+              {clientSecret ? (
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <DonationCheckout
+                    onBack={() => setClientSecret("")}
+                    onPaid={() => {
+                      setOkMsg(`התשלום בוצע בהצלחה 💝${createdDonationId ? ` (מס' תרומה ${createdDonationId})` : ""}`);
+                    }}
                   />
-                  <div className="note">
-                    סכום נבחר: <b>₪{amount || 0}</b>
-                  </div>
-                </div>
-              </div>
+                </Elements>
+              ) : (
+                // אחרת – מציגים את הטופס שלך
+                <form className="form" onSubmit={submitDonation}>
+                  {/* סכום */}
+                  <div>
+                    <div className="sectionTitle">סכום תרומה</div>
 
-              {/* פרטי תורם */}
-              <div>
-                <div className="sectionTitle">פרטי תורם</div>
-                <div className="grid">
-                  <div className="field col6">
-                    <label>שם מלא</label>
-                    <input
-                      type="text"
-                      placeholder="שם פרטי ושם משפחה"
-                      value={donorName}
-                      onChange={(e) => setDonorName(e.target.value)}
-                      disabled={posting}
-                      required
-                    />
-                  </div>
+                    <div className="amountButtons">
+                      {quickAmounts.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          className="amountBtn"
+                          onClick={() => pickQuick(v)}
+                          aria-pressed={amount === v}
+                          disabled={posting}
+                        >
+                          ₪{v}
+                        </button>
+                      ))}
+                    </div>
 
-                  {/* אימייל/טלפון — UI בלבד כרגע */}
-                  <div className="field col6">
-                    <label>אימייל (לא נשמר כרגע במערכת)</label>
-                    <input
-                      type="email"
-                      placeholder="example@email.com"
-                      value={donorEmail}
-                      onChange={(e) => setDonorEmail(e.target.value)}
-                      disabled={posting}
-                    />
-                  </div>
-
-                  <div className="field col6">
-                    <label>טלפון (לא נשמר כרגע במערכת)</label>
-                    <input
-                      type="tel"
-                      placeholder="05X-XXXXXXX"
-                      value={donorPhone}
-                      onChange={(e) => setDonorPhone(e.target.value)}
-                      disabled={posting}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* חשבונית — UI בלבד */}
-              <div>
-                <div className="sectionTitle">פרטים לחשבונית</div>
-                <div className="note">למילוי רק אם נדרש רישום מיוחד (כרגע לא נשמר במערכת)</div>
-
-                <div className="grid" style={{ marginTop: 8 }}>
-                  <div className="field col6">
-                    <label>שם לחיוב / שם חברה</label>
-                    <input
-                      type="text"
-                      value={billName}
-                      onChange={(e) => setBillName(e.target.value)}
-                      disabled={posting}
-                    />
+                    <div className="field" style={{ marginTop: 10 }}>
+                      <label>סכום אחר</label>
+                      <input
+                        type="number"
+                        min={1}
+                        placeholder="הכנס סכום בש״ח"
+                        value={amountInput}
+                        onChange={onAmountChange}
+                        disabled={posting}
+                      />
+                      <div className="note">
+                        סכום נבחר: <b>₪{amount || 0}</b>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="field col6">
-                    <label>ח.פ / ע.מ</label>
-                    <input
-                      type="text"
-                      value={billId}
-                      onChange={(e) => setBillId(e.target.value)}
-                      disabled={posting}
-                    />
+                  {/* פרטי תורם */}
+                  <div>
+                    <div className="sectionTitle">פרטי תורם</div>
+                    <div className="grid">
+                      <div className="field col6">
+                        <label>שם מלא</label>
+                        <input
+                          type="text"
+                          placeholder="שם פרטי ושם משפחה"
+                          value={donorName}
+                          onChange={(e) => setDonorName(e.target.value)}
+                          disabled={posting}
+                          required
+                        />
+                      </div>
+
+                      <div className="field col6">
+                        <label>אימייל</label>
+                        <input
+                          type="email"
+                          placeholder="example@email.com"
+                          value={donorEmail}
+                          onChange={(e) => setDonorEmail(e.target.value)}
+                          disabled={posting}
+                        />
+                      </div>
+
+                      <div className="field col6">
+                        <label>טלפון (UI בלבד)</label>
+                        <input
+                          type="tel"
+                          placeholder="05X-XXXXXXX"
+                          value={donorPhone}
+                          onChange={(e) => setDonorPhone(e.target.value)}
+                          disabled={posting}
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="field">
-                    <label>כתובת</label>
-                    <input
-                      type="text"
-                      placeholder="רחוב, מספר, עיר"
-                      value={billAddress}
-                      onChange={(e) => setBillAddress(e.target.value)}
-                      disabled={posting}
-                    />
+                  {/* חשבונית — UI בלבד */}
+                  <div>
+                    <div className="sectionTitle">פרטים לחשבונית</div>
+                    <div className="note">כרגע לא נשמר במערכת</div>
+
+                    <div className="grid" style={{ marginTop: 8 }}>
+                      <div className="field col6">
+                        <label>שם לחיוב / שם חברה</label>
+                        <input
+                          type="text"
+                          value={billName}
+                          onChange={(e) => setBillName(e.target.value)}
+                          disabled={posting}
+                        />
+                      </div>
+
+                      <div className="field col6">
+                        <label>ח.פ / ע.מ</label>
+                        <input
+                          type="text"
+                          value={billId}
+                          onChange={(e) => setBillId(e.target.value)}
+                          disabled={posting}
+                        />
+                      </div>
+
+                      <div className="field">
+                        <label>כתובת</label>
+                        <input
+                          type="text"
+                          placeholder="רחוב, מספר, עיר"
+                          value={billAddress}
+                          onChange={(e) => setBillAddress(e.target.value)}
+                          disabled={posting}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* פעולות */}
-              <div className="actions">
-                <button className="btn primary" type="submit" disabled={posting}>
-                  {posting ? "שולח..." : "המשך לתשלום"}
-                </button>
+                  {/* פעולות */}
+                  <div className="actions">
+                    <button className="btn primary" type="submit" disabled={posting}>
+                      {posting ? "שולח..." : "המשך לתשלום"}
+                    </button>
 
-                <button className="btn ghost" type="button" onClick={resetForm} disabled={posting}>
-                  ניקוי
-                </button>
+                    <button className="btn ghost" type="button" onClick={resetForm} disabled={posting}>
+                      ניקוי
+                    </button>
 
-                <p className="note" style={{ margin: 0 }}>
-                  כרגע הכפתור יוצר רשומת תרומה במערכת (Donation). אחרי חיבור סליקה—יעבור לתשלום אמיתי.
-                </p>
-              </div>
-            </form>
+                    <p className="note" style={{ margin: 0 }}>
+                      אחרי יצירת תרומה במערכת — תיפתח חלונית תשלום של Stripe (Test Mode).
+                    </p>
+                  </div>
+                </form>
+              )}
+            </>
           )}
         </div>
+
+        {/* טיפ בדיקה */}
+        {clientSecret ? (
+          <div className="note" style={{ marginTop: 10 }}>
+            כרטיס בדיקה: <b>4242 4242 4242 4242</b> | תוקף עתידי | CVC כלשהו
+          </div>
+        ) : null}
       </div>
     </main>
   );

@@ -39,7 +39,21 @@ class Donation(models.Model):
         null=True,
         blank=True,
     )
+    status = models.CharField(
+        max_length=20,
+        default="PENDING",
+        choices=[
+            ("PENDING", "Pending"),
+            ("PAID", "Paid"),
+            ("FAILED", "Failed"),
+        ],
+    )
 
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True, default="")
+    stripe_payment_status = models.CharField(max_length=50, blank=True, default="")
+
+
+    currency = models.CharField(max_length=10, default="ils")
     # אופציונלי: לחבר לקמפיין (אם תרצי)
     campaign = models.ForeignKey(
         DonationCampaign,

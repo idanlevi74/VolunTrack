@@ -40,26 +40,30 @@ class DonationSerializer(serializers.ModelSerializer):
             "amount",
             "currency",
             "donor_name",
+            "donor_email",
             "donor_display_name",
+
+            # ✅ סליקה
+            "status",
+            "stripe_payment_intent_id",
+            "stripe_payment_status",
+
             "created_at",
         ]
         read_only_fields = [
             "created_at",
             "donor_display_name",
+            "status",
+            "stripe_payment_intent_id",
+            "stripe_payment_status",
         ]
 
     def get_donor_display_name(self, obj):
-        """
-        מה שמציגים בפועל:
-        - אם יש משתמש מחובר → שם מהפרופיל
-        - אחרת → donor_name
-        """
         if obj.donor_user:
             vol = getattr(obj.donor_user, "vol_profile", None)
             if vol and vol.full_name:
                 return vol.full_name
             return obj.donor_user.email
-
         return obj.donor_name or "אנונימי"
 
     def validate_amount(self, value):
