@@ -1,15 +1,9 @@
 from rest_framework import serializers
 from .models import DonationCampaign, Donation
-class DonationCampaignSerializer(serializers.ModelSerializer):
-    organization_name = serializers.CharField(
-        source="organization.email", read_only=True
-    )
 
-    total_donations = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        read_only=True
-    )
+
+class DonationCampaignSerializer(serializers.ModelSerializer):
+    organization_name = serializers.CharField(source="organization.email", read_only=True)
 
     class Meta:
         model = DonationCampaign
@@ -20,11 +14,11 @@ class DonationCampaignSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "goal_amount",
-            "total_donations",
             "is_active",
             "created_at",
         ]
-        read_only_fields = ["organization", "created_at", "total_donations"]
+        read_only_fields = ["organization", "created_at"]
+
 
 class DonationSerializer(serializers.ModelSerializer):
     donor_display_name = serializers.SerializerMethodField()
@@ -40,14 +34,11 @@ class DonationSerializer(serializers.ModelSerializer):
             "amount",
             "currency",
             "donor_name",
-            "donor_email",
-            "donor_display_name",
-
-            # ✅ סליקה
+            "donor_email",  # ✅ חייב כדי שהפרונט יוכל לשלוח
             "status",
             "stripe_payment_intent_id",
             "stripe_payment_status",
-
+            "donor_display_name",
             "created_at",
         ]
         read_only_fields = [
@@ -61,7 +52,7 @@ class DonationSerializer(serializers.ModelSerializer):
     def get_donor_display_name(self, obj):
         if obj.donor_user:
             vol = getattr(obj.donor_user, "vol_profile", None)
-            if vol and vol.full_name:
+            if vol and getattr(vol, "full_name", ""):
                 return vol.full_name
             return obj.donor_user.email
         return obj.donor_name or "אנונימי"
@@ -70,3 +61,9 @@ class DonationSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("סכום התרומה חייב להיות גדול מאפס")
         return value
+
+    def validate_currency(self, value):
+        v = (value or "").lower().strip()
+        if v != "ils":
+            raise serializers.ValidationError("כרגע נתמכת רק מטבע ILS")
+        return v
