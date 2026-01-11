@@ -77,7 +77,7 @@ export default function Home() {
                   <p className="card__meta">תאריך • מיקום • עמותה</p>
 
                   <div className="card__actions">
-                    <Link className="btnSmall" to={`/event/${i}`}>
+                    <Link className="btnSmall" to={`/events/${i}`}>
                       לפרטים
                     </Link>
                     <button className="btnSmall" type="button">
