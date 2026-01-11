@@ -213,13 +213,16 @@ export default function Donate() {
     setPosting(true);
     try {
       // 1) create donation in your DB
-      const payload = {
-        organization: Number(orgId) || orgId,
-        amount,
-        currency: "ils", // ✅ stripe expects lowercase currency
+      const orgUserId = org?.user_id;
+        if (!orgUserId) throw new Error("לא התקבל user_id לעמותה מהשרת");
+
+        const payload = {
+            organization: orgUserId,
+            amount,
+            currency: "ils",
         donor_name: donorName.trim(),
-        donor_email: donorEmail.trim(), // אם הוספת לשדות serializer - אחלה. אם לא, תמחקי
-      };
+        donor_email: donorEmail.trim(),
+        };
 
       const created = await apiFetch("/api/donations/", {
         method: "POST",
