@@ -103,6 +103,7 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 # Database
 # -----------------------------
 DATABASE_URL = os.getenv("DATABASE_URL")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 
 if DATABASE_URL:
     # Supabase/Render Postgres
