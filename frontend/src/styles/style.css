@@ -553,3 +553,17 @@ body{
 .footer__nav a:hover {
   text-decoration: underline;
 }
+mobileNav .nav__link{
+  display:block;
+  width:100%;
+  text-align:right; /* RTL */
+  background:transparent;
+  border:0;
+  padding:10px 16px;
+  color:var(--text);
+  font-weight:800;
+  border-radius:0;
+}
+.mobileNav .nav__link:hover{
+  background:#f1f5f9;
+}
