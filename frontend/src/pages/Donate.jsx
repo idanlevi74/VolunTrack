@@ -4,7 +4,12 @@ import { apiFetch } from "../api/client";
 
 // Stripe
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -39,12 +44,9 @@ function DonationCheckout({ onBack, onPaid }) {
 
     setPaying(true);
     try {
-      // Payment Element flow
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          // לא חייבים return_url אם אנחנו מציגים הודעה באותו עמוד,
-          // אבל Stripe לפעמים דורש. עדיף לשים.
           return_url: window.location.href,
         },
         redirect: "if_required",
@@ -53,7 +55,6 @@ function DonationCheckout({ onBack, onPaid }) {
       if (error) {
         setPayErr(error.message || "שגיאה בתשלום");
       } else {
-        // הצלחה (בחלק מהמקרים webhook יעדכן סטטוס; פה אנחנו מציגים success UI)
         onPaid?.();
       }
     } catch (e) {
@@ -69,16 +70,32 @@ function DonationCheckout({ onBack, onPaid }) {
 
       {payErr ? <div className="alert error">אופס 😅 {payErr}</div> : null}
 
-      <div style={{ border: "1px solid var(--border)", borderRadius: 14, padding: 14 }}>
+      <div
+        style={{
+          border: "1px solid var(--border)",
+          borderRadius: 14,
+          padding: 14,
+        }}
+      >
         <PaymentElement />
       </div>
 
       <div className="actions" style={{ marginTop: 14 }}>
-        <button className="btn primary" type="button" onClick={payNow} disabled={!stripe || paying}>
+        <button
+          className="btn primary"
+          type="button"
+          onClick={payNow}
+          disabled={!stripe || paying}
+        >
           {paying ? "משלם..." : "שלם עכשיו"}
         </button>
 
-        <button className="btn ghost" type="button" onClick={onBack} disabled={paying}>
+        <button
+          className="btn ghost"
+          type="button"
+          onClick={onBack}
+          disabled={paying}
+        >
           חזרה לעריכת פרטים
         </button>
 
@@ -145,7 +162,9 @@ export default function Donate() {
         try {
           const list = await apiFetch("/api/organizations/");
           const items = asList(list);
-          const found = items.find((x) => String(x.id ?? x.pk ?? "") === String(orgId));
+          const found = items.find(
+            (x) => String(x.id ?? x.pk ?? "") === String(orgId)
+          );
           if (!found) throw e;
           setOrg(found);
         } catch (e2) {
@@ -196,8 +215,10 @@ export default function Donate() {
   // 1) Create Donation  2) Create Stripe intent
   // ======================
   async function submitDonation(e) {
-      console.log("API BASE:", import.meta.env.VITE_API_BASE_URL);
     e.preventDefault();
+
+    console.log("API BASE:", import.meta.env.VITE_API_BASE_URL);
+
     setErr("");
     setOkMsg("");
 
@@ -210,27 +231,27 @@ export default function Donate() {
       setErr("נא למלא שם מלא (או כתבי 'אנונימי')");
       return;
     }
-    console.error(e2);
-    setErr(e2?.message || "שגיאה ביצירת תרומה/תשלום");
 
     setPosting(true);
     try {
       // 1) create donation in your DB
-      const orgUserId = org?.user_id;
-        if (!orgUserId) throw new Error("לא התקבל user_id לעמותה מהשרת");
+      const orgUserId = org?.user_id ?? org?.user ?? org?.id;
+      if (!orgUserId) throw new Error("לא התקבל user_id לעמותה מהשרת");
 
-        const payload = {
-            organization: orgUserId,
-            amount,
-            currency: "ils",
+      const payload = {
+        organization: orgUserId,
+        amount,
+        currency: "ils",
         donor_name: donorName.trim(),
         donor_email: donorEmail.trim(),
-        };
+      };
 
       const created = await apiFetch("/api/donations/", {
         method: "POST",
         body: payload,
       });
+
+      console.log("Created donation:", created);
 
       const donationId = created?.id ?? created?.pk;
       if (!donationId) throw new Error("נוצרה תרומה אך לא התקבל מזהה (id)");
@@ -243,11 +264,14 @@ export default function Donate() {
         body: { donation_id: donationId },
       });
 
+      console.log("Intent response:", intentRes);
+
       const cs = intentRes?.client_secret;
       if (!cs) throw new Error("לא התקבל client_secret מ-Stripe");
 
       setClientSecret(cs);
     } catch (e2) {
+      console.error("Donate submit error:", e2);
       setErr(e2?.message || "שגיאה ביצירת תרומה/תשלום");
     } finally {
       setPosting(false);
@@ -448,7 +472,9 @@ export default function Donate() {
         <div className="donateHeaderRow">
           <div>
             <h1 className="donateTitle">תרומה ל{name}</h1>
-            <p className="donateSubtitle">התרומה שלך מסייעת לנו להמשיך ולפעול לטובת הקהילה 💝</p>
+            <p className="donateSubtitle">
+              התרומה שלך מסייעת לנו להמשיך ולפעול לטובת הקהילה 💝
+            </p>
           </div>
 
           <Link className="topLink" to="/organizations">
@@ -463,8 +489,12 @@ export default function Donate() {
             <div style={{ fontWeight: 900, marginBottom: 6 }}>הצלחה ✅</div>
             {okMsg}
             <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link className="topLink" to="/organizations">חזרה לעמותות</Link>
-              <Link className="topLink" to="/explore">למצוא התנדבות</Link>
+              <Link className="topLink" to="/organizations">
+                חזרה לעמותות
+              </Link>
+              <Link className="topLink" to="/explore">
+                למצוא התנדבות
+              </Link>
             </div>
           </div>
         ) : null}
@@ -476,27 +506,32 @@ export default function Donate() {
             <div className="note">
               לא נמצאה עמותה.
               <div style={{ marginTop: 10 }}>
-                <button className="btn ghost" type="button" onClick={() => navigate("/organizations")}>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => navigate("/organizations")}
+                >
                   חזרה
                 </button>
               </div>
             </div>
           ) : (
             <>
-              {/* אם יש clientSecret – מציגים תשלום Stripe */}
               {clientSecret ? (
                 <Elements stripe={stripePromise} options={{ clientSecret }}>
                   <DonationCheckout
                     onBack={() => setClientSecret("")}
                     onPaid={() => {
-                      setOkMsg(`התשלום בוצע בהצלחה 💝${createdDonationId ? ` (מס' תרומה ${createdDonationId})` : ""}`);
+                      setOkMsg(
+                        `התשלום בוצע בהצלחה 💝${
+                          createdDonationId ? ` (מס' תרומה ${createdDonationId})` : ""
+                        }`
+                      );
                     }}
                   />
                 </Elements>
               ) : (
-                // אחרת – מציגים את הטופס שלך
                 <form className="form" onSubmit={submitDonation}>
-                  {/* סכום */}
                   <div>
                     <div className="sectionTitle">סכום תרומה</div>
 
@@ -531,7 +566,6 @@ export default function Donate() {
                     </div>
                   </div>
 
-                  {/* פרטי תורם */}
                   <div>
                     <div className="sectionTitle">פרטי תורם</div>
                     <div className="grid">
@@ -571,7 +605,6 @@ export default function Donate() {
                     </div>
                   </div>
 
-                  {/* חשבונית — UI בלבד */}
                   <div>
                     <div className="sectionTitle">פרטים לחשבונית</div>
                     <div className="note">כרגע לא נשמר במערכת</div>
@@ -610,13 +643,17 @@ export default function Donate() {
                     </div>
                   </div>
 
-                  {/* פעולות */}
                   <div className="actions">
                     <button className="btn primary" type="submit" disabled={posting}>
                       {posting ? "שולח..." : "המשך לתשלום"}
                     </button>
 
-                    <button className="btn ghost" type="button" onClick={resetForm} disabled={posting}>
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={resetForm}
+                      disabled={posting}
+                    >
                       ניקוי
                     </button>
 
@@ -630,7 +667,6 @@ export default function Donate() {
           )}
         </div>
 
-        {/* טיפ בדיקה */}
         {clientSecret ? (
           <div className="note" style={{ marginTop: 10 }}>
             כרטיס בדיקה: <b>4242 4242 4242 4242</b> | תוקף עתידי | CVC כלשהו
