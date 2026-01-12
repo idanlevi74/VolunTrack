@@ -209,6 +209,8 @@ export default function Donate() {
       setErr("נא למלא שם מלא (או כתבי 'אנונימי')");
       return;
     }
+    console.error(e2);
+    setErr(e2?.message || "שגיאה ביצירת תרומה/תשלום");
 
     setPosting(true);
     try {
