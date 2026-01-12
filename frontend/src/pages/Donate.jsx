@@ -521,14 +521,13 @@ export default function Donate() {
                 <Elements stripe={stripePromise} options={{ clientSecret }}>
                   <DonationCheckout
                     onBack={() => setClientSecret("")}
-                    onPaid={() => {
-                      setOkMsg(
-                        `התשלום בוצע בהצלחה 💝${
-                          createdDonationId ? ` (מס' תרומה ${createdDonationId})` : ""
-                        }`
-                      );
-                    }}
-                  />
+                    onPaid={() => {setOkMsg("התרומה בוצעה בהצלחה 💝 תודה רבה!");
+
+                    setTimeout(() => {
+                    navigate("/");
+                    }, 3000); // ⏱️ 3 שניות
+  }}
+/>
                 </Elements>
               ) : (
                 <form className="form" onSubmit={submitDonation}>
