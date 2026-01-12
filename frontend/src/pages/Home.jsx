@@ -1,7 +1,130 @@
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "../styles/style.css";
 
+// אם יש לך VITE_API_BASE_URL בקובץ .env של הפרונט – מעולה.
+// אחרת ייפול ל-"" (אותו דומיין).
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
+// עוזר קטן ל-DRF pagination
+function asList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload?.results && Array.isArray(payload.results)) return payload.results;
+  return [];
+}
+
+// fetch קטן שמחזיר JSON (גם כשיש שגיאה – מחזיר טקסט אם לא JSON)
+async function fetchJson(path, { method = "GET", token, body } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text || null;
+  }
+
+  if (!res.ok) {
+    const msg =
+      (data && (data.detail || data.error)) ||
+      (typeof data === "string" ? data : "") ||
+      `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return data;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  // dateStr צפוי להיות "YYYY-MM-DD"
+  try {
+    const d = new Date(`${dateStr}T00:00:00`);
+    return d.toLocaleDateString("he-IL");
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatTime(timeStr) {
+  if (!timeStr) return "";
+  // timeStr יכול להיות "HH:MM:SS" או "HH:MM"
+  return String(timeStr).slice(0, 5);
+}
+
 export default function Home() {
+  const navigate = useNavigate();
+
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [eventsError, setEventsError] = useState("");
+
+  // לפי מה שהיה לך בפרויקט: אם את שומרת accessToken בשם אחר – תעדכני פה
+  const accessToken = localStorage.getItem("accessToken");
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadHotEvents() {
+      setLoadingEvents(true);
+      setEventsError("");
+
+      try {
+        // תעדכני את ה-query לפי מה שתומך אצלך בשרת:
+        // למשל: /api/events/?ordering=date&limit=3
+        // או /api/events/?page_size=3
+        const data = await fetchJson("/api/events/");
+        const list = asList(data);
+
+        // "חמים" = 3 הראשונים (אם אין פילטר בשרת)
+        const top3 = list.slice(0, 3);
+
+        if (!ignore) setEvents(top3);
+      } catch (e) {
+        if (!ignore) setEventsError(e.message || "נכשלה טעינת אירועים");
+      } finally {
+        if (!ignore) setLoadingEvents(false);
+      }
+    }
+
+    loadHotEvents();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const cards = useMemo(() => events || [], [events]);
+
+  const handleSignup = async (eventId) => {
+    // אם ההרשמה אצלך היא ציבורית – אפשר להסיר את הבדיקה הזו
+    if (!accessToken) {
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      // תעדכני את ה-endpoint לפי מה שיש אצלך בפועל:
+      // לדוגמה: POST /api/events/{id}/signup/
+      await fetchJson(`/api/events/${eventId}/signup/`, {
+        method: "POST",
+        token: accessToken,
+        body: {}, // אם צריך payload – תוסיפי פה
+      });
+
+      alert("נרשמת בהצלחה ✅");
+    } catch (e) {
+      alert(e.message || "שגיאה בהרשמה");
+    }
+  };
+
   return (
     <main>
       {/* HERO */}
@@ -14,8 +137,8 @@ export default function Home() {
           </h1>
 
           <p className="hero__subtitle">
-            VolunTrack מחברת בין מתנדבים לעמותות בדרך הקלה והחכמה ביותר.
-            מצאו את ההתנדבות שמתאימה לכם, עקבו אחר ההשפעה שלכם, ותרמו לקהילה.
+            VolunTrack מחברת בין מתנדבים לעמותות בדרך הקלה והחכמה ביותר. מצאו את
+            ההתנדבות שמתאימה לכם, עקבו אחר ההשפעה שלכם, ותרמו לקהילה.
           </p>
 
           <div className="hero__actions">
@@ -67,27 +190,62 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid3">
-            {[1, 2, 3].map((i) => (
-              <article className="card" key={i}>
-                <div className="card__thumb"></div>
+          {/* מצבי טעינה/שגיאה */}
+          {loadingEvents ? (
+            <div className="card" style={{ padding: 16 }}>
+              טוען אירועים...
+            </div>
+          ) : eventsError ? (
+            <div className="card" style={{ padding: 16 }}>
+              <b>לא הצלחתי לטעון אירועים.</b>
+              <div style={{ marginTop: 6, opacity: 0.8 }}>{eventsError}</div>
+            </div>
+          ) : cards.length === 0 ? (
+            <div className="card" style={{ padding: 16 }}>
+              עדיין אין אירועים זמינים 😅
+            </div>
+          ) : (
+            <div className="grid3">
+              {cards.map((e) => {
+                const when = [formatDate(e.date), formatTime(e.time)]
+                  .filter(Boolean)
+                  .join(" • ");
 
-                <div className="card__body">
-                  <h3 className="card__title">כותרת אירוע</h3>
-                  <p className="card__meta">תאריך • מיקום • עמותה</p>
+                const meta = [
+                  when,
+                  e.location || "",
+                  e.org_name || e.org || "",
+                ]
+                  .filter(Boolean)
+                  .join(" • ");
 
-                  <div className="card__actions">
-                    <Link className="btnSmall" to={`/events/${i}`}>
-                      לפרטים
-                    </Link>
-                    <button className="btnSmall" type="button">
-                      להרשמה
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                return (
+                  <article className="card" key={e.id}>
+                    <div className="card__thumb"></div>
+
+                    <div className="card__body">
+                      <h3 className="card__title">{e.title || "אירוע"}</h3>
+                      <p className="card__meta">{meta || "תאריך • מיקום • עמותה"}</p>
+
+                      <div className="card__actions">
+                        <Link className="btnSmall" to={`/events/${e.id}`}>
+                          לפרטים
+                        </Link>
+
+                        <button
+                          className="btnSmall"
+                          type="button"
+                          onClick={() => handleSignup(e.id)}
+                        >
+                          להרשמה
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -105,9 +263,7 @@ export default function Home() {
           <div className="split__content">
             <span className="pill">למה VolunTrack?</span>
 
-            <h2 className="split__title">
-              הדרך החכמה לנהל את הנתינה שלכם
-            </h2>
+            <h2 className="split__title">הדרך החכמה לנהל את הנתינה שלכם</h2>
 
             <p className="split__desc">
               המערכת שלנו נבנתה כדי לאפשר מעורבות חברתית בצורה קלה, נגישה וחכמה —
@@ -140,9 +296,7 @@ export default function Home() {
       <section className="cta">
         <div className="container cta__inner">
           <h2 className="cta__title">מוכנים להתחיל להשפיע?</h2>
-          <p className="cta__desc">
-            הצטרפו לאלפי מתנדבים שכבר עושים שינוי אמיתי בקהילה.
-          </p>
+          <p className="cta__desc">הצטרפו לאלפי מתנדבים שכבר עושים שינוי אמיתי בקהילה.</p>
 
           <Link className="btn btn--light" to="/register">
             הצטרפו עכשיו בחינם
