@@ -4,7 +4,6 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 import stripe
-from stripe.error import StripeError  # ✅ חדש
 
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.views import APIView
@@ -116,7 +115,6 @@ class CreateDonationPaymentIntent(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # ✅ ודאי שיש לך STRIPE_SECRET_KEY
         if not getattr(settings, "STRIPE_SECRET_KEY", ""):
             return Response(
                 {"detail": "Stripe is not configured (missing STRIPE_SECRET_KEY)"},
@@ -132,33 +130,13 @@ class CreateDonationPaymentIntent(APIView):
         except Donation.DoesNotExist:
             return Response({"detail": "Donation not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # אם כבר שולם – לא יוצרים שוב
-        if getattr(donation, "status", "") == "PAID":
+        if donation.status == "PAID":
             return Response({"detail": "Donation already paid"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # אם יש כבר intent – נחזיר client_secret
-        if getattr(donation, "stripe_payment_intent_id", ""):
-            try:
-                intent = stripe.PaymentIntent.retrieve(donation.stripe_payment_intent_id)
-                cs = intent.get("client_secret")
-                if cs:
-                    return Response({"client_secret": cs})
-            except StripeError as e:
-                # ✅ מחזיר שגיאה קריאה מה-Stripe
-                return Response(
-                    {"detail": "Stripe error retrieving PaymentIntent", "stripe": str(e)},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            except Exception:
-                # אם משהו נשבר/intent לא קיים - ננקה וניצור חדש
-                donation.stripe_payment_intent_id = ""
-                donation.save(update_fields=["stripe_payment_intent_id"])
-
-        # ✅ יצירת PaymentIntent עם טיפול בשגיאות
         try:
             intent = stripe.PaymentIntent.create(
                 amount=to_minor_units(donation.amount),
-                currency=(getattr(donation, "currency", None) or "ils"),
+                currency=(donation.currency or "ils"),
                 automatic_payment_methods={"enabled": True},
                 metadata={
                     "donation_id": str(donation.id),
@@ -166,7 +144,7 @@ class CreateDonationPaymentIntent(APIView):
                     "campaign_id": str(donation.campaign_id or ""),
                 },
             )
-        except StripeError as e:
+        except stripe.error.StripeError as e:
             return Response(
                 {"detail": "Stripe error creating PaymentIntent", "stripe": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -177,20 +155,12 @@ class CreateDonationPaymentIntent(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # עדכון בדאטהבייס
         donation.stripe_payment_intent_id = intent.get("id", "")
         donation.stripe_payment_status = intent.get("status", "")
         donation.status = "PENDING"
         donation.save()
 
-        cs = intent.get("client_secret")
-        if not cs:
-            return Response(
-                {"detail": "Stripe did not return client_secret"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        return Response({"client_secret": cs})
+        return Response({"client_secret": intent.get("client_secret")})
 
 
 # ======================
