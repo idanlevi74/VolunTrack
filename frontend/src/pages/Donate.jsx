@@ -222,8 +222,8 @@ export default function Donate() {
     setErr("");
     setOkMsg("");
 
-    if (!amount || amount < 1) {
-      setErr("בחרי סכום תרומה (לפחות 1 ₪)");
+    if (!amount || amount < 2) {
+      setErr("בחרי סכום תרומה (לפחות 2 ₪)");
       return;
     }
 
@@ -554,8 +554,8 @@ export default function Donate() {
                       <label>סכום אחר</label>
                       <input
                         type="number"
-                        min={1}
-                        placeholder="הכנס סכום בש״ח"
+                        min={2}
+                        placeholder="הכנס סכום בש״ח (מינימום 2)"
                         value={amountInput}
                         onChange={onAmountChange}
                         disabled={posting}

@@ -1,4 +1,4 @@
-/*
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 export async function apiFetch(path, { method = "GET", body, token } = {}) {
@@ -41,26 +41,4 @@ export async function apiFetch(path, { method = "GET", body, token } = {}) {
 
   return data;
 }
-*/
-// api/client.js (דוגמה)
-export async function apiFetch(path, { method = "GET", body, token } = {}) {
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
 
-  const text = await res.text();
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text || null; }
-
-  if (!res.ok) {
-    console.error("API ERROR", res.status, data);
-    throw new Error(typeof data === "string" ? data : JSON.stringify(data));
-  }
-  return data;
-}
