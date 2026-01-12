@@ -22,7 +22,7 @@ class DonationCampaignSerializer(serializers.ModelSerializer):
 
 class DonationSerializer(serializers.ModelSerializer):
     donor_display_name = serializers.SerializerMethodField()
-    campaign_title = serializers.CharField(source="campaign.title", read_only=True)
+    campaign_title = serializers.SerializerMethodField()
 
     class Meta:
         model = Donation
@@ -34,7 +34,7 @@ class DonationSerializer(serializers.ModelSerializer):
             "amount",
             "currency",
             "donor_name",
-            "donor_email",  # ✅ חייב כדי שהפרונט יוכל לשלוח
+            "donor_email",
             "status",
             "stripe_payment_intent_id",
             "stripe_payment_status",
@@ -47,7 +47,11 @@ class DonationSerializer(serializers.ModelSerializer):
             "status",
             "stripe_payment_intent_id",
             "stripe_payment_status",
+            "campaign_title",
         ]
+
+    def get_campaign_title(self, obj):
+        return getattr(obj.campaign, "title", "")
 
     def get_donor_display_name(self, obj):
         if obj.donor_user:
