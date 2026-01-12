@@ -196,6 +196,7 @@ export default function Donate() {
   // 1) Create Donation  2) Create Stripe intent
   // ======================
   async function submitDonation(e) {
+      console.log("API BASE:", import.meta.env.VITE_API_BASE_URL);
     e.preventDefault();
     setErr("");
     setOkMsg("");
