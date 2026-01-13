@@ -32,33 +32,37 @@ class Event(models.Model):
         return self.title
 
 
+from django.db import models
+from django.conf import settings
+
 class EventSignup(models.Model):
-    # מי נרשם לאיזה אירוע (רק מתנדבים)
-    event = models.ForeignKey(
-        Event,
-        on_delete=models.CASCADE,
-        related_name="signups",  # event.signups.all()
-    )
-    volunteer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="event_signups",
-        limit_choices_to={"role": "VOLUNTEER"},
-    )
-    rating = models.PositiveSmallIntegerField(
-        null=True,
-        blank=True
-    )
+    event = models.ForeignKey("Event", related_name="signups", on_delete=models.CASCADE)
+    volunteer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["event", "volunteer"],
-                name="unique_volunteer_per_event",
-            )
-        ]
+    # --- דירוגים (1–5) ---
+    rating_reliability = models.PositiveSmallIntegerField(null=True, blank=True)
+    rating_execution = models.PositiveSmallIntegerField(null=True, blank=True)
+    rating_teamwork = models.PositiveSmallIntegerField(null=True, blank=True)
 
-    def __str__(self):
-        return f"{self.volunteer_id} -> {self.event_id}"
+    # ציון כללי ממוצע (לנוחות) – אופציונלי
+    rating = models.FloatField(null=True, blank=True)
+
+    # מטא
+    role = models.CharField(max_length=64, blank=True, default="")
+    hours = models.CharField(max_length=64, blank=True, default="")
+    task_desc = models.CharField(max_length=255, blank=True, default="")
+    notes = models.TextField(blank=True, default="")
+
+    rated_at = models.DateTimeField(null=True, blank=True)
+    rated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ratings_given"
+    )
+
+    class Meta:
+        unique_together = ("event", "volunteer")
+

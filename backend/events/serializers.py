@@ -31,12 +31,30 @@ class EventSerializer(serializers.ModelSerializer):
         return (getattr(prof, "org_name", "") or org.email) if org else ""
 
 
-class EventSignupSerializer(serializers.ModelSerializer):
-    volunteer_name = serializers.CharField(
-        source="volunteer.vol_profile.full_name",
-        read_only=True
-    )
+class EventSignupRatingSerializer(serializers.ModelSerializer):
+    volunteer_name = serializers.CharField(source="volunteer.vol_profile.full_name", read_only=True)
 
     class Meta:
         model = EventSignup
-        fields = ["id", "volunteer_name", "created_at"]
+        fields = [
+            "id",
+            "volunteer_name",
+            "role",
+            "hours",
+            "task_desc",
+            "notes",
+            "rating_reliability",
+            "rating_execution",
+            "rating_teamwork",
+            "rating",
+            "rated_at",
+        ]
+        read_only_fields = ["id", "volunteer_name", "rating", "rated_at"]
+
+    def validate(self, attrs):
+        # בדיקה 1–5 אם נשלח
+        for f in ("rating_reliability", "rating_execution", "rating_teamwork"):
+            if f in attrs and attrs[f] is not None:
+                if not (1 <= attrs[f] <= 5):
+                    raise serializers.ValidationError({f: "Rating must be between 1 and 5"})
+        return attrs
