@@ -27,7 +27,7 @@ export default function App() {
         <Route path="/explore" element={<ExploreEvents />} />
         <Route path= "/events/:id" element={<EventDetails />} />
         <Route path="/organizations" element={<Organizations />} />
-        <Route path="/events/:eventId/rate" element={<VolunteerRating />}/>
+        <Route path="/org-admin/rate/:eventId" element={<VolunteerRating />} />
         <Route path="/organizations/:id" element={<OrganizationDetails />} />
         <Route path="/donate/:orgId" element={<Donate />} />
         <Route element={<RequireAuth />}>
