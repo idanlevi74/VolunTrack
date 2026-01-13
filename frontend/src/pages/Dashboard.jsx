@@ -322,9 +322,9 @@ export default function Dashboard() {
               <Link className="btnSmall" to={`/events/${a.id}`}>
                 לפרטים
               </Link>
-              <Link className="btnSmall" to={`/org-admin/rate/${a.id}`}>
-                תדרג את המשתתפים
-              </Link>
+              <Link className="btnSmall" to={`/events/${a.id}/rate`}>
+  תדרג את המשתתפים
+                </Link>
             </div>
           </div>
         ))}
@@ -356,9 +356,9 @@ export default function Dashboard() {
               <Link className="btnSmall" to={`/events/${a.id}`}>
                 לפרטים
               </Link>
-              <Link className="btnSmall" to={`/org-admin/rate/${a.id}`}>
+              <Link className="btnSmall" to={`/events/${a.id}/rate`}>
                 תדרג את המשתתפים
-              </Link>
+            </Link>
             </div>
           </div>
         ))}

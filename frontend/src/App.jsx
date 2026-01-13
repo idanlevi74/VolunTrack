@@ -7,6 +7,7 @@ import ExploreEvents from "./pages/ExploreEvents";
 import EventDetails from "./pages/EventDetails";
 import Dashboard from "./pages/Dashboard";
 import Organizations from "./pages/Organizations";
+import VolunteerRating from "./pages/VolunteerRating";
 import OrganizationDetails from "./pages/OrganizationDetails";
 import CreateEvent from "./pages/CreateEvent";
 import Signup from "./pages/Signup";
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/explore" element={<ExploreEvents />} />
         <Route path= "/events/:id" element={<EventDetails />} />
         <Route path="/organizations" element={<Organizations />} />
+        <Route path="/events/:eventId/rate" element={<VolunteerRating />}/>
         <Route path="/organizations/:id" element={<OrganizationDetails />} />
         <Route path="/donate/:orgId" element={<Donate />} />
         <Route element={<RequireAuth />}>
