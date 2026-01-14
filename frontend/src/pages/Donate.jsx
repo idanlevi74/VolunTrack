@@ -527,7 +527,7 @@ export default function Donate() {
                     navigate("/");
                     }, 3000); // ⏱️ 3 שניות
                     }, 3000); // ⏱️ 3 שניות
-  }}
+  }
 />
                 </Elements>
               ) : (
