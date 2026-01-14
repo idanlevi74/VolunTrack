@@ -526,8 +526,7 @@ export default function Donate() {
                     setTimeout(() => {
                     navigate("/");
                     }, 3000); // ⏱️ 3 שניות
-                    }, 3000); // ⏱️ 3 שניות
-  }
+  }}
 />
                 </Elements>
               ) : (
