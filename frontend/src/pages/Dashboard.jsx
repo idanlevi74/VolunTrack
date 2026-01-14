@@ -472,13 +472,6 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-
-                <div className="box boxPad">
-                  <h3 style={{ margin: 0, fontWeight: 900 }}>התגים שלי</h3>
-                  <p style={{ margin: "10px 0 0", color: "var(--muted)", fontWeight: 800 }}>
-                    טרם צברתם תגים. הירשמו לפעילות ראשונה!
-                  </p>
-                </div>
               </aside>
             ) : null}
           </div>
