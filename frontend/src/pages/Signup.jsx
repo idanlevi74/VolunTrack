@@ -136,13 +136,6 @@ export default function Signup() {
           <h1 className="h1">יצירת משתמש</h1>
           <p className="h2">מלא/י פרטים כדי להמשיך</p>
 
-          <button className="btnGoogle" type="button" onClick={() => alert("Google Sign-Up – TODO")}>
-            <span className="gIcon">G</span>
-            המשך עם Google
-          </button>
-
-          <div className="sep">או</div>
-
           {err ? (
             <div className="box boxPad" style={{ borderColor: "rgba(239,68,68,.35)", marginBottom: 12 }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>אופס 😅</div>

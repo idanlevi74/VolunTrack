@@ -526,6 +526,7 @@ export default function Donate() {
                     setTimeout(() => {
                     navigate("/");
                     }, 3000); // ⏱️ 3 שניות
+                    }, 3000); // ⏱️ 3 שניות
   }}
 />
                 </Elements>
@@ -592,7 +593,7 @@ export default function Donate() {
                       </div>
 
                       <div className="field col6">
-                        <label>טלפון (UI בלבד)</label>
+                        <label>טלפון</label>
                         <input
                           type="tel"
                           placeholder="05X-XXXXXXX"
