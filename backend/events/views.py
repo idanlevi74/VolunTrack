@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import Avg
+
 from accounts.permissions import IsOrganization, IsVolunteer
 from .models import Event, EventSignup
 from . import serializers as s
@@ -148,9 +149,12 @@ class EventViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        qs = event.signups.select_related("volunteer", "volunteer__vol_profile")
+        # ✅ תיקון 500: לא תלוי בשם vol_profile ולא יקרוס אם אין פרופיל
+        qs = event.signups.select_related("volunteer").order_by("created_at")
+
         serializer = s.EventSignupSerializer(qs, many=True)
         return Response(serializer.data)
+
 
 class DashboardStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsVolunteer]
@@ -180,8 +184,11 @@ class DashboardStatsView(APIView):
             "activities_count": activities_count,
             "hours_total": 0,
         })
+
+
 class OrgAdminView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
         u = request.user
-        return Response({ "can_manage": u.role in (u.Role.ORG, u.Role.ADMIN), })
+        return Response({"can_manage": u.role in (u.Role.ORG, u.Role.ADMIN)})
