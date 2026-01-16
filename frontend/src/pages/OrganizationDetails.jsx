@@ -60,6 +60,9 @@ export default function OrganizationDetails() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [org, setOrg] = useState(null);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsErr, setEventsErr] = useState("");
+  const [events, setEvents] = useState([]);
 
   // דמו (אם אין API_BASE)
   const demoOrg = useMemo(
