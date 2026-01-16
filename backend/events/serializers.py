@@ -3,13 +3,15 @@ from .models import Event, EventSignup
 
 
 class EventSerializer(serializers.ModelSerializer):
-    # ✅ שדות "רכים" – לא מפילים אם לא קיימים במודל
     city = serializers.SerializerMethodField()
 
-    # ✅ כדי שהפרונט יציג "נרשמו / נשארו" בלי תלות ב-related_name
+    # ✅ ספירה "רכה" אבל עם fallback מהיר אם זה הגיע מהשרת כאנוטציה
     signups_count = serializers.SerializerMethodField()
 
     org_name = serializers.SerializerMethodField()
+
+    # ✅ דירוג של המתנדב לאירוע הזה (אם הוא רשום)
+    my_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -19,7 +21,7 @@ class EventSerializer(serializers.ModelSerializer):
             "description",
             "category",
             "location",
-            "city",               # ✅ עכשיו לא מפיל גם אם אין city במודל
+            "city",
             "date",
             "time",
             "needed_volunteers",
@@ -27,28 +29,53 @@ class EventSerializer(serializers.ModelSerializer):
             "org_name",
             "created_at",
             "signups_count",
+            "my_rating",
         ]
-        read_only_fields = ["organization", "created_at", "signups_count"]
+        read_only_fields = ["organization", "created_at", "signups_count", "my_rating"]
 
     def get_city(self, obj):
-        # ✅ אם יש city במודל – יחזיר אותו, אם אין – יחזיר ""
         return getattr(obj, "city", "") or ""
 
     def get_signups_count(self, obj):
-        # ✅ עובד תמיד
+        # אם בעתיד תעשי annotate(signups_count=Count("signups"))
+        annotated = getattr(obj, "signups_count", None)
+        if annotated is not None:
+            return annotated
         return EventSignup.objects.filter(event=obj).count()
 
     def get_org_name(self, obj):
         org = getattr(obj, "organization", None)
         return getattr(org, "email", "") if org else ""
 
+    def get_my_rating(self, obj):
+        req = self.context.get("request")
+        user = getattr(req, "user", None)
+
+        if not user or not user.is_authenticated:
+            return None
+
+        # אם יש אצלך Roles אחרים, זה עדיין בטוח (רק מתנדב צריך לראות my_rating)
+        if getattr(user, "role", None) != user.Role.VOLUNTEER:
+            return None
+
+        signup = (
+            EventSignup.objects
+            .filter(event=obj, volunteer=user)
+            .only("rating")
+            .first()
+        )
+        return getattr(signup, "rating", None) if signup else None
+
 
 class EventSignupSerializer(serializers.ModelSerializer):
     volunteer_name = serializers.SerializerMethodField()
 
+    # ✅ אופציונלי (ממש שימושי לדוח אירועים+נרשמים לעמותה)
+    volunteer_email = serializers.SerializerMethodField()
+
     class Meta:
         model = EventSignup
-        fields = ["id", "volunteer_name", "created_at"]
+        fields = ["id", "volunteer_name", "volunteer_email", "created_at"]
 
     def get_volunteer_name(self, obj):
         v = getattr(obj, "volunteer", None)
@@ -61,3 +88,7 @@ class EventSignupSerializer(serializers.ModelSerializer):
             return full_name
 
         return getattr(v, "email", "") or str(v)
+
+    def get_volunteer_email(self, obj):
+        v = getattr(obj, "volunteer", None)
+        return getattr(v, "email", "") if v else ""
