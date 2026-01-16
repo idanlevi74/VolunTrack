@@ -20,28 +20,33 @@ class EventViewSet(viewsets.ModelViewSet):
         user = self.request.user
         qs = Event.objects.all()
 
-        # 👀 לא מחובר (אדם חיצוני) — רואה את כל האירועים (ציבורי)
+        # 👀 לא מחובר — רואה הכל
         if not user or not user.is_authenticated:
             return qs
 
-        # 🏢 עמותה — רואה רק את האירועים שלה
-        if user.role == user.Role.ORG:
-            return qs.filter(organization=user)
-
-        # 🙋 מתנדב — ברירת מחדל: כל האירועים
-        # אבל: לדשבורד אנחנו רוצים "שלי" לפי status=upcoming/history
         status_param = self.request.query_params.get("status")
-        if status_param in ("upcoming", "history"):
-            today = timezone.localdate()
+        today = timezone.localdate()
 
-            # רק אירועים שהמתנדב נרשם אליהם
-            my_events = qs.filter(signups__volunteer=user).distinct()
+        # 🏢 עמותה — רואה את האירועים שלה, עם פילטר upcoming/history אם ביקשו
+        if user.role == user.Role.ORG:
+            org_qs = qs.filter(organization=user)
 
             if status_param == "upcoming":
-                # פעילויות קרובות
+                return org_qs.filter(date__gte=today).order_by("date")
+
+            if status_param == "history":
+                return org_qs.filter(date__lt=today).order_by("-date")
+
+            return org_qs
+
+        # 🙋 מתנדב — "שלי" לפי status
+        if status_param in ("upcoming", "history"):
+            my_event_ids = EventSignup.objects.filter(volunteer=user).values_list("event_id", flat=True)
+            my_events = qs.filter(id__in=my_event_ids).distinct()
+
+            if status_param == "upcoming":
                 return my_events.filter(date__gte=today).order_by("date")
 
-            # history
             return my_events.filter(date__lt=today).order_by("-date")
 
         return qs
