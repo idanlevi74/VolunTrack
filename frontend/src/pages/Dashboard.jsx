@@ -1,15 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiFetch } from "../api/client"; // ✅ כמו אצלך בפרויקט
+import { apiFetch } from "../api/client";
 
-// עוזר קטן ל-DRF pagination
+// ===== helpers =====
 function asList(payload) {
   if (Array.isArray(payload)) return payload;
   if (payload?.results && Array.isArray(payload.results)) return payload.results;
   return [];
 }
 
-// מיפוי שדות כדי שלא תיתקעי אם השמות אצלך שונים קצת
 function mapActivity(a) {
   return {
     id: a.id ?? a.pk,
@@ -18,6 +17,9 @@ function mapActivity(a) {
     location: a.location ?? a.city ?? a.address ?? "",
     category: a.category ?? a.category_name ?? a.type ?? "",
     date: a.date ?? a.start_date ?? a.starts_at ?? "",
+    time: a.time ?? a.start_time ?? a.starts_time ?? "",
+    needed_volunteers: a.needed_volunteers ?? a.needed ?? a.capacity ?? "",
+    signups_count: a.signups_count ?? a.signup_count ?? "",
   };
 }
 
@@ -32,17 +34,19 @@ function mapDonation(d) {
       d.org?.name ??
       "",
     amount: d.amount ?? d.sum ?? d.total ?? "",
+    currency: d.currency ?? d.curr ?? "",
+    donor_name: d.donor_name ?? d.name ?? "",
+    donor_email: d.donor_email ?? d.email ?? "",
+    status: d.status ?? d.payment_status ?? "",
     date: d.date ?? d.created_at ?? "",
   };
 }
 
-// חילוץ role בצורה סופר-סלחנית
 function getRole(profile) {
   const raw = profile?.role ?? profile?.user?.role ?? profile?.account?.role ?? "";
   return String(raw || "").toUpperCase();
 }
 
-// YYYY-MM-DD של "היום" לפי אזור זמן מקומי של הדפדפן
 function todayIsoLocal() {
   const now = new Date();
   const y = now.getFullYear();
@@ -53,37 +57,84 @@ function todayIsoLocal() {
 
 function formatDateIL(dateStr) {
   if (!dateStr) return "";
-  // אם זה כבר YYYY-MM-DD נעשה תצוגה יפה
-  const d = new Date(`${dateStr}T00:00:00`);
+  const d = new Date(`${String(dateStr).slice(0, 10)}T00:00:00`);
   if (Number.isNaN(d.getTime())) return String(dateStr);
   return d.toLocaleDateString("he-IL");
 }
 
-export default function Dashboard() {
-  // 🔁 ברירת מחדל: מתנדב "קרובות", עמותה "אירועים קרובים"
-  const [activeTab, setActiveTab] = useState("upcoming");
+// CSV export (Excel-friendly)
+function csvEscape(value) {
+  const s = value === null || value === undefined ? "" : String(value);
+  // escape quotes by doubling them
+  const escaped = s.replace(/"/g, '""');
+  // wrap in quotes if needed
+  if (/[",\n\r]/.test(escaped)) return `"${escaped}"`;
+  return escaped;
+}
 
+function downloadCsv(filename, headers, rows) {
+  // Excel + עברית: BOM כדי להימנע מג׳יבריש
+  const BOM = "\uFEFF";
+  const headerLine = headers.map(csvEscape).join(",");
+  const lines = rows.map((r) => headers.map((h) => csvEscape(r[h])).join(","));
+  const csv = BOM + [headerLine, ...lines].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// small concurrency runner to avoid hammering server
+async function runWithConcurrency(items, limit, worker) {
+  const results = [];
+  let i = 0;
+
+  async function next() {
+    while (i < items.length) {
+      const idx = i++;
+      results[idx] = await worker(items[idx], idx);
+    }
+  }
+
+  const runners = Array.from({ length: Math.min(limit, items.length) }, () => next());
+  await Promise.all(runners);
+  return results;
+}
+
+// ===== component =====
+export default function Dashboard() {
+  const [activeTab, setActiveTab] = useState("upcoming");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   const [profile, setProfile] = useState(null);
 
-  // מתנדב
+  // volunteer
   const [stats, setStats] = useState(null);
   const [upcoming, setUpcoming] = useState([]);
   const [history, setHistory] = useState([]);
   const [donations, setDonations] = useState([]);
 
-  // עמותה
+  // org
   const [orgUpcoming, setOrgUpcoming] = useState([]);
   const [orgHistory, setOrgHistory] = useState([]);
   const [orgDonations, setOrgDonations] = useState([]);
 
-  // דמו (למקרה שמשהו נשבר)
+  // reports UI (org)
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportMsg, setReportMsg] = useState("");
+
   const demo = useMemo(
     () => ({
       profile: { full_name: "אדיר משה", role: "VOLUNTEER" },
-      stats: { reliability_score: 0, activities_count: 0, hours_total: 0 }, // ⭐ 0–5
+      stats: { reliability_score: 0, activities_count: 0, hours_total: 0 },
       upcoming: [],
       history: [],
       donations: [],
@@ -100,9 +151,9 @@ export default function Dashboard() {
     async function load() {
       setLoading(true);
       setErr("");
+      setReportMsg("");
 
       try {
-        // 1) תמיד נביא me כדי לדעת role
         const me = await apiFetch("/api/me/");
         if (!alive) return;
 
@@ -110,13 +161,12 @@ export default function Dashboard() {
         const isVolunteer = role === "VOLUNTEER";
         const isOrg = role === "ORG" || role === "ADMIN";
 
-        // 2) אירועים: אותו endpoint, אבל עכשיו השרת אמור לסנן גם לעמותה לפי status
+        // events (server should filter by status for both volunteer + org)
         const commonEventRequests = [
           apiFetch("/api/events/?status=upcoming"),
           apiFetch("/api/events/?status=history"),
         ];
 
-        // 3) לפי role:
         const extraRequests = isVolunteer
           ? [apiFetch("/api/dashboard/stats/"), apiFetch("/api/donations/")]
           : isOrg
@@ -132,7 +182,6 @@ export default function Dashboard() {
 
         setProfile(me);
 
-        // ✅ סנכרון נוסף בפרונט (רשת ביטחון) כדי לוודא שהטאב לא יתבלבל גם אם השרת יחזיר משהו לא צפוי
         const today = todayIsoLocal();
 
         if (isVolunteer) {
@@ -167,22 +216,14 @@ export default function Dashboard() {
           setOrgDonations(asList(donsRaw).map(mapDonation));
           setActiveTab("orgUpcoming");
         } else {
-          const up = asList(evUpRaw)
-            .map(mapActivity)
-            .filter((e) => String(e?.date || "") >= today);
-
-          const hist = asList(evHistRaw)
-            .map(mapActivity)
-            .filter((e) => String(e?.date || "") < today);
-
-          setUpcoming(up);
-          setHistory(hist);
+          setUpcoming(asList(evUpRaw).map(mapActivity));
+          setHistory(asList(evHistRaw).map(mapActivity));
           setActiveTab("upcoming");
         }
       } catch (e) {
         if (!alive) return;
-
         setErr(e?.message || "שגיאה בטעינת נתונים");
+
         setProfile(demo.profile);
         setStats(demo.stats);
         setUpcoming(demo.upcoming);
@@ -227,7 +268,7 @@ export default function Dashboard() {
 
   const fullName = profile?.full_name || profile?.username || profile?.email || "משתמש/ת";
 
-  // ⭐ אמינות 0–5 (אם אין דירוגים: 0)
+  // volunteer KPI
   const score = Number(stats?.reliability_score ?? 0);
   const activitiesCount = stats?.activities_count ?? 0;
   const hoursTotal = stats?.hours_total ?? 0;
@@ -241,6 +282,7 @@ export default function Dashboard() {
       ? "טוב מאוד 🙂"
       : "אפשר לשפר 💪";
 
+  // ===== render sections =====
   const renderVolunteerUpcoming = () => {
     if (!upcoming?.length) {
       return (
@@ -333,7 +375,8 @@ export default function Dashboard() {
           <div key={d.id} className="card">
             <div className="cardTitle">{d.org_name || "עמותה"}</div>
             <div className="cardMeta">
-              סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {formatDateIL(String(d.date).slice(0, 10))}
+              סכום: {d.amount} {d.currency ? d.currency : ""} {d.amount ? "•" : ""} תאריך:{" "}
+              {formatDateIL(String(d.date).slice(0, 10))}
             </div>
           </div>
         ))}
@@ -341,7 +384,7 @@ export default function Dashboard() {
     );
   };
 
-  // ✅ עמותה - קרובים (בלי דירוג!)
+  // org upcoming (no rating)
   const renderOrgUpcoming = () => {
     if (!orgUpcoming?.length) {
       return (
@@ -351,6 +394,9 @@ export default function Dashboard() {
           <br />
           כשייצרת אירוע חדש – הוא יופיע פה
           <div style={{ marginTop: 14 }}>
+            <Link className="btnSmall" to="/org-admin/events">
+              ניהול אירועים
+            </Link>
           </div>
         </div>
       );
@@ -369,7 +415,6 @@ export default function Dashboard() {
               <Link className="btnSmall" to={`/events/${a.id}`}>
                 לפרטים
               </Link>
-              {/* ❌ אין דירוג באירועים עתידיים */}
             </div>
           </div>
         ))}
@@ -377,7 +422,7 @@ export default function Dashboard() {
     );
   };
 
-  // ✅ עמותה - היסטוריה (פה כן דירוג)
+  // org history (rating allowed)
   const renderOrgHistory = () => {
     if (!orgHistory?.length) {
       return (
@@ -429,9 +474,10 @@ export default function Dashboard() {
       <div className="grid">
         {orgDonations.map((d) => (
           <div key={d.id} className="card">
-            <div className="cardTitle">{d.org_name || "תרומה"}</div>
+            <div className="cardTitle">תרומה</div>
             <div className="cardMeta">
-              סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {formatDateIL(String(d.date).slice(0, 10))}
+              סכום: {d.amount} {d.currency ? d.currency : ""} {d.amount ? "•" : ""} תאריך:{" "}
+              {formatDateIL(String(d.date).slice(0, 10))}
             </div>
           </div>
         ))}
@@ -454,6 +500,136 @@ export default function Dashboard() {
 
     return renderVolunteerUpcoming();
   };
+
+  // ===== reports actions (org) =====
+  async function exportOrgDonationsCsv() {
+    if (reportBusy) return;
+    setReportBusy(true);
+    setReportMsg("");
+
+    try {
+      const raw = await apiFetch("/api/donations/");
+      const list = asList(raw).map(mapDonation);
+
+      const headers = [
+        "donation_id",
+        "amount",
+        "currency",
+        "donor_name",
+        "donor_email",
+        "status",
+        "created_at",
+      ];
+
+      const rows = list.map((d) => ({
+        donation_id: d.id,
+        amount: d.amount,
+        currency: d.currency,
+        donor_name: d.donor_name,
+        donor_email: d.donor_email,
+        status: d.status,
+        created_at: d.date,
+      }));
+
+      const fname = `donations_report_${todayIsoLocal()}.csv`;
+      downloadCsv(fname, headers, rows);
+      setReportMsg("✅ דוח תרומות ירד בהצלחה");
+    } catch (e) {
+      setReportMsg(e?.message || "שגיאה בייצוא דוח תרומות");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  async function exportOrgEventsAndSignupsCsv() {
+    if (reportBusy) return;
+    setReportBusy(true);
+    setReportMsg("");
+
+    try {
+      // כל האירועים של העמותה (בלי status כדי לכלול הכל)
+      const evRaw = await apiFetch("/api/events/");
+      const events = asList(evRaw).map(mapActivity);
+
+      // לכל אירוע נביא נרשמים: /api/events/{id}/signups/
+      // כדי לא להפיל שרת אם יש 50 אירועים בבת אחת – נריץ בקונקרנציה 4
+      const signupsByEvent = await runWithConcurrency(
+        events,
+        4,
+        async (ev) => {
+          try {
+            const s = await apiFetch(`/api/events/${ev.id}/signups/`);
+            return { eventId: ev.id, signups: asList(s) };
+          } catch {
+            // אם אירוע בלי הרשאה/בעיה – נחזיר ריק כדי לא להפיל את הכל
+            return { eventId: ev.id, signups: [] };
+          }
+        }
+      );
+
+      const byId = new Map(signupsByEvent.map((x) => [x.eventId, x.signups]));
+
+      const headers = [
+        "event_id",
+        "event_title",
+        "event_date",
+        "event_time",
+        "event_location",
+        "event_category",
+        "needed_volunteers",
+        "signups_count",
+        "volunteer_name",
+        "signup_created_at",
+      ];
+
+      const rows = [];
+      for (const ev of events) {
+        const signups = byId.get(ev.id) || [];
+        const signupCount =
+          ev.signups_count !== "" && ev.signups_count !== null && ev.signups_count !== undefined
+            ? ev.signups_count
+            : signups.length;
+
+        if (!signups.length) {
+          rows.push({
+            event_id: ev.id,
+            event_title: ev.title,
+            event_date: ev.date,
+            event_time: ev.time,
+            event_location: ev.location,
+            event_category: ev.category,
+            needed_volunteers: ev.needed_volunteers,
+            signups_count: signupCount,
+            volunteer_name: "",
+            signup_created_at: "",
+          });
+        } else {
+          for (const s of signups) {
+            rows.push({
+              event_id: ev.id,
+              event_title: ev.title,
+              event_date: ev.date,
+              event_time: ev.time,
+              event_location: ev.location,
+              event_category: ev.category,
+              needed_volunteers: ev.needed_volunteers,
+              signups_count: signupCount,
+              volunteer_name: s.volunteer_name ?? s.name ?? "",
+              signup_created_at: s.created_at ?? "",
+            });
+          }
+        }
+      }
+
+      const fname = `events_and_signups_report_${todayIsoLocal()}.csv`;
+      downloadCsv(fname, headers, rows);
+      setReportMsg("✅ דוח אירועים + נרשמים ירד בהצלחה");
+    } catch (e) {
+      setReportMsg(e?.message || "שגיאה בייצוא דוח אירועים");
+    } finally {
+      setReportBusy(false);
+    }
+  }
 
   return (
     <main className="page">
@@ -499,7 +675,7 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* ⭐ צד ימין - אמינות/תגים: רק מתנדב */}
+            {/* ===== RIGHT SIDE ===== */}
             {isVolunteer ? (
               <aside style={{ display: "grid", gap: 16 }}>
                 <div className="box kpi">
@@ -516,6 +692,46 @@ export default function Dashboard() {
                       <div className="kpiNum">{hoursTotal}</div>
                       <div className="kpiLbl">שעות</div>
                     </div>
+                  </div>
+                </div>
+              </aside>
+            ) : null}
+
+            {/* ✅ ORG REPORTS BOX */}
+            {isOrg ? (
+              <aside style={{ display: "grid", gap: 16 }}>
+                <div className="box boxPad">
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>📊 דוחות</div>
+                  <div style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.6 }}>
+                    ייצוא לקובץ CSV (נפתח באקסל)
+                  </div>
+
+                  <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+                    <button
+                      className="btnSmall"
+                      type="button"
+                      onClick={exportOrgDonationsCsv}
+                      disabled={reportBusy || loading}
+                      title="ייצוא כל התרומות שהתקבלו לעמותה"
+                    >
+                      {reportBusy ? "מכין..." : "ייצוא דוח תרומות לאקסל"}
+                    </button>
+
+                    <button
+                      className="btnSmall"
+                      type="button"
+                      onClick={exportOrgEventsAndSignupsCsv}
+                      disabled={reportBusy || loading}
+                      title="ייצוא כל האירועים + כל הנרשמים לכל אירוע"
+                    >
+                      {reportBusy ? "מכין..." : "ייצוא דוח אירועים + נרשמים לאקסל"}
+                    </button>
+
+                    {reportMsg ? (
+                      <div style={{ marginTop: 8, fontWeight: 800, color: "var(--muted)" }}>
+                        {reportMsg}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </aside>
