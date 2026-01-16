@@ -1,10 +1,12 @@
 from rest_framework import serializers
-from django.db.models import Count
 from .models import Event, EventSignup
 
 
 class EventSerializer(serializers.ModelSerializer):
-    # ✅ ספירה בטוחה של נרשמים – לא תלוי ב-related_name
+    # ✅ שדות "רכים" – לא מפילים אם לא קיימים במודל
+    city = serializers.SerializerMethodField()
+
+    # ✅ כדי שהפרונט יציג "נרשמו / נשארו" בלי תלות ב-related_name
     signups_count = serializers.SerializerMethodField()
 
     org_name = serializers.SerializerMethodField()
@@ -17,7 +19,7 @@ class EventSerializer(serializers.ModelSerializer):
             "description",
             "category",
             "location",
-            "city",
+            "city",               # ✅ עכשיו לא מפיל גם אם אין city במודל
             "date",
             "time",
             "needed_volunteers",
@@ -28,8 +30,12 @@ class EventSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["organization", "created_at", "signups_count"]
 
+    def get_city(self, obj):
+        # ✅ אם יש city במודל – יחזיר אותו, אם אין – יחזיר ""
+        return getattr(obj, "city", "") or ""
+
     def get_signups_count(self, obj):
-        # ✅ עובד תמיד, גם אם אין related_name
+        # ✅ עובד תמיד
         return EventSignup.objects.filter(event=obj).count()
 
     def get_org_name(self, obj):
@@ -49,11 +55,9 @@ class EventSignupSerializer(serializers.ModelSerializer):
         if not v:
             return ""
 
-        # ננסה full_name מהפרופיל אם קיים
         profile = getattr(v, "vol_profile", None)
         full_name = getattr(profile, "full_name", None) if profile else None
         if full_name:
             return full_name
 
-        # fallback בטוח
         return getattr(v, "email", "") or str(v)
