@@ -24,7 +24,6 @@ function mapActivity(a) {
 function mapDonation(d) {
   return {
     id: d.id ?? d.pk,
-    // לנדיבות: אפשר ששרת יחזיר org_name, אבל נשמור גם על שדות אחרים
     org_name:
       d.org_name ??
       d.organization_name ??
@@ -41,6 +40,23 @@ function mapDonation(d) {
 function getRole(profile) {
   const raw = profile?.role ?? profile?.user?.role ?? profile?.account?.role ?? "";
   return String(raw || "").toUpperCase();
+}
+
+// YYYY-MM-DD של "היום" לפי אזור זמן מקומי של הדפדפן
+function todayIsoLocal() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatDateIL(dateStr) {
+  if (!dateStr) return "";
+  // אם זה כבר YYYY-MM-DD נעשה תצוגה יפה
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return String(dateStr);
+  return d.toLocaleDateString("he-IL");
 }
 
 export default function Dashboard() {
@@ -94,17 +110,13 @@ export default function Dashboard() {
         const isVolunteer = role === "VOLUNTEER";
         const isOrg = role === "ORG" || role === "ADMIN";
 
-        // 2) אירועים - לכל תפקיד יש רשימה משלו
-        // מתנדב: היסטוריה/קרובות של הנרשמים (כבר ממומש בשרת לפי status param)
-        // עמותה: צריך שהשרת יחזיר אירועים של העמותה לפי status param (כבר ממומש ב-EventViewSet לפי role)
+        // 2) אירועים: אותו endpoint, אבל עכשיו השרת אמור לסנן גם לעמותה לפי status
         const commonEventRequests = [
           apiFetch("/api/events/?status=upcoming"),
           apiFetch("/api/events/?status=history"),
         ];
 
         // 3) לפי role:
-        // מתנדב: סטטיסטיקות + תרומות שתרם (נניח שכבר טיפלת בשרת כדי ש-/api/donations/ יחזיר "שלי")
-        // עמותה: תרומות שקיבלה (נניח שכבר טיפלת בשרת שיחזיר לפי organization)
         const extraRequests = isVolunteer
           ? [apiFetch("/api/dashboard/stats/"), apiFetch("/api/donations/")]
           : isOrg
@@ -120,22 +132,51 @@ export default function Dashboard() {
 
         setProfile(me);
 
+        // ✅ סנכרון נוסף בפרונט (רשת ביטחון) כדי לוודא שהטאב לא יתבלבל גם אם השרת יחזיר משהו לא צפוי
+        const today = todayIsoLocal();
+
         if (isVolunteer) {
-          setUpcoming(asList(evUpRaw).map(mapActivity));
-          setHistory(asList(evHistRaw).map(mapActivity));
+          const up = asList(evUpRaw)
+            .map(mapActivity)
+            .filter((e) => String(e?.date || "") >= today)
+            .sort((a, b) => String(a?.date || "").localeCompare(String(b?.date || "")));
+
+          const hist = asList(evHistRaw)
+            .map(mapActivity)
+            .filter((e) => String(e?.date || "") < today)
+            .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")));
+
+          setUpcoming(up);
+          setHistory(hist);
           setStats(st);
           setDonations(asList(donsRaw).map(mapDonation));
           setActiveTab("upcoming");
         } else if (isOrg) {
-          // אותם endpoints, אבל בשרת get_queryset מחזיר אירועים של העמותה
-          setOrgUpcoming(asList(evUpRaw).map(mapActivity));
-          setOrgHistory(asList(evHistRaw).map(mapActivity));
+          const up = asList(evUpRaw)
+            .map(mapActivity)
+            .filter((e) => String(e?.date || "") >= today)
+            .sort((a, b) => String(a?.date || "").localeCompare(String(b?.date || "")));
+
+          const hist = asList(evHistRaw)
+            .map(mapActivity)
+            .filter((e) => String(e?.date || "") < today)
+            .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")));
+
+          setOrgUpcoming(up);
+          setOrgHistory(hist);
           setOrgDonations(asList(donsRaw).map(mapDonation));
           setActiveTab("orgUpcoming");
         } else {
-          // fallback
-          setUpcoming(asList(evUpRaw).map(mapActivity));
-          setHistory(asList(evHistRaw).map(mapActivity));
+          const up = asList(evUpRaw)
+            .map(mapActivity)
+            .filter((e) => String(e?.date || "") >= today);
+
+          const hist = asList(evHistRaw)
+            .map(mapActivity)
+            .filter((e) => String(e?.date || "") < today);
+
+          setUpcoming(up);
+          setHistory(hist);
           setActiveTab("upcoming");
         }
       } catch (e) {
@@ -223,7 +264,8 @@ export default function Dashboard() {
           <div key={a.id} className="card">
             <div className="cardTitle">{a.title}</div>
             <div className="cardMeta">
-              {a.org_name} {a.org_name ? "•" : ""} {a.location} {a.location ? "•" : ""} {a.category}
+              {a.org_name} {a.org_name ? "•" : ""} {a.location} {a.location ? "•" : ""}{" "}
+              {a.category} {a.category ? "•" : ""} {formatDateIL(a.date)}
             </div>
             <div className="cardActions">
               <Link className="btnSmall" to={`/events/${a.id}`}>
@@ -254,7 +296,13 @@ export default function Dashboard() {
           <div key={a.id} className="card">
             <div className="cardTitle">{a.title}</div>
             <div className="cardMeta">
-              {a.org_name} {a.org_name ? "•" : ""} {a.location} {a.location ? "•" : ""} {a.date}
+              {a.org_name} {a.org_name ? "•" : ""} {a.location} {a.location ? "•" : ""}{" "}
+              {formatDateIL(a.date)}
+            </div>
+            <div className="cardActions">
+              <Link className="btnSmall" to={`/events/${a.id}`}>
+                לפרטים
+              </Link>
             </div>
           </div>
         ))}
@@ -285,7 +333,7 @@ export default function Dashboard() {
           <div key={d.id} className="card">
             <div className="cardTitle">{d.org_name || "עמותה"}</div>
             <div className="cardMeta">
-              סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {d.date}
+              סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {formatDateIL(String(d.date).slice(0, 10))}
             </div>
           </div>
         ))}
@@ -293,6 +341,7 @@ export default function Dashboard() {
     );
   };
 
+  // ✅ עמותה - קרובים (בלי דירוג!)
   const renderOrgUpcoming = () => {
     if (!orgUpcoming?.length) {
       return (
@@ -316,15 +365,14 @@ export default function Dashboard() {
           <div key={a.id} className="card">
             <div className="cardTitle">{a.title}</div>
             <div className="cardMeta">
-              {a.location} {a.location ? "•" : ""} {a.category} {a.category ? "•" : ""} {a.date}
+              {a.location} {a.location ? "•" : ""} {a.category} {a.category ? "•" : ""}{" "}
+              {formatDateIL(a.date)}
             </div>
             <div className="cardActions">
               <Link className="btnSmall" to={`/events/${a.id}`}>
                 לפרטים
               </Link>
-              <Link className="btnSmall" to={`/events/${a.id}/rate`}>
-  תדרג את המשתתפים
-                </Link>
+              {/* ❌ אין דירוג באירועים עתידיים */}
             </div>
           </div>
         ))}
@@ -332,6 +380,7 @@ export default function Dashboard() {
     );
   };
 
+  // ✅ עמותה - היסטוריה (פה כן דירוג)
   const renderOrgHistory = () => {
     if (!orgHistory?.length) {
       return (
@@ -350,7 +399,8 @@ export default function Dashboard() {
           <div key={a.id} className="card">
             <div className="cardTitle">{a.title}</div>
             <div className="cardMeta">
-              {a.location} {a.location ? "•" : ""} {a.category} {a.category ? "•" : ""} {a.date}
+              {a.location} {a.location ? "•" : ""} {a.category} {a.category ? "•" : ""}{" "}
+              {formatDateIL(a.date)}
             </div>
             <div className="cardActions">
               <Link className="btnSmall" to={`/events/${a.id}`}>
@@ -358,7 +408,7 @@ export default function Dashboard() {
               </Link>
               <Link className="btnSmall" to={`/events/${a.id}/rate`}>
                 תדרג את המשתתפים
-            </Link>
+              </Link>
             </div>
           </div>
         ))}
@@ -384,7 +434,7 @@ export default function Dashboard() {
           <div key={d.id} className="card">
             <div className="cardTitle">{d.org_name || "תרומה"}</div>
             <div className="cardMeta">
-              סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {d.date}
+              סכום: {d.amount} {d.amount ? "•" : ""} תאריך: {formatDateIL(String(d.date).slice(0, 10))}
             </div>
           </div>
         ))}
@@ -405,7 +455,6 @@ export default function Dashboard() {
       if (activeTab === "orgDonations") return renderOrgDonations();
     }
 
-    // fallback
     return renderVolunteerUpcoming();
   };
 
@@ -453,7 +502,7 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* ⭐ צד ימין - אמינות/תגים: רק מתנדב (כמו שהיה אצלך) */}
+            {/* ⭐ צד ימין - אמינות/תגים: רק מתנדב */}
             {isVolunteer ? (
               <aside style={{ display: "grid", gap: 16 }}>
                 <div className="box kpi">
