@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import "../styles/explore-events.css"; // ✅ CSS ייעודי למסך הזה
+import "./styles/explore-events.css"; // ✅ CSS ייעודי למסך הזה
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -52,6 +52,15 @@ function asList(payload) {
   return [];
 }
 
+// YYYY-MM-DD של "היום" לפי אזור זמן מקומי של הדפדפן
+function todayIsoLocal() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export default function ExploreEvents() {
   const token = localStorage.getItem("accessToken") || "";
 
@@ -67,18 +76,6 @@ export default function ExploreEvents() {
 
   // ✅ כאן נשמור את כל ה-event ids שהמשתמש רשום אליהם (נטען לפני כל האירועים)
   const [signedEventIds, setSignedEventIds] = useState(() => new Set());
-
-  const categoriesFromData = useMemo(() => {
-    const set = new Set();
-    events.forEach((e) => e?.category && set.add(e.category));
-    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), "he"));
-  }, [events]);
-
-  const locationsFromData = useMemo(() => {
-    const set = new Set();
-    events.forEach((e) => e?.location && set.add(e.location));
-    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), "he"));
-  }, [events]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -120,21 +117,27 @@ export default function ExploreEvents() {
 
             setSignedEventIds(ids);
           } catch {
-            // אם למשתמש אין הרשאות/לא מתנדב/או כל בעיה אחרת — לא מפילים את המסך
             setSignedEventIds(new Set());
           }
         } else {
           setSignedEventIds(new Set());
         }
 
-        // ✅ 2) עכשיו נטען את כל האירועים הציבוריים למסך Explore
+        // ✅ 2) עכשיו נטען את כל האירועים הציבוריים
         const data = await fetchJson("/api/events/", {
           token,
           signal: controller.signal,
         });
 
         const items = asList(data);
-        setEvents(items);
+
+        // ✅ מסנן: רק אירועים שלא קרו עדיין (date >= today)
+        const today = todayIsoLocal();
+        const upcomingOnly = items
+          .filter((e) => (e?.date || "") >= today)
+          .sort((a, b) => String(a?.date || "").localeCompare(String(b?.date || "")));
+
+        setEvents(upcomingOnly);
       } catch (e) {
         if (e?.name !== "AbortError") setErr(e?.message || "שגיאה בטעינת אירועים");
       } finally {
@@ -146,6 +149,7 @@ export default function ExploreEvents() {
     return () => controller.abort();
   }, [token]);
 
+  // ✅ מסננים/חיפוש על רשימת upcoming בלבד שכבר נשמרה ב-events
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
 
@@ -170,6 +174,18 @@ export default function ExploreEvents() {
       return catOk && locOk && qOk;
     });
   }, [events, category, location, q]);
+
+  const categoriesFromData = useMemo(() => {
+    const set = new Set();
+    events.forEach((e) => e?.category && set.add(e.category));
+    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), "he"));
+  }, [events]);
+
+  const locationsFromData = useMemo(() => {
+    const set = new Set();
+    events.forEach((e) => e?.location && set.add(e.location));
+    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), "he"));
+  }, [events]);
 
   const clearFilters = () => {
     setCategory("כל הקטגוריות");
@@ -197,7 +213,6 @@ export default function ExploreEvents() {
 
     try {
       if (alreadySigned) {
-        // ❌ ביטול הרשמה: אצלך זה POST /cancel/
         await fetchJson(`/api/events/${eventObj.id}/cancel/`, {
           token,
           method: "POST",
@@ -211,7 +226,6 @@ export default function ExploreEvents() {
 
         setToast("בוטלה ההרשמה ✅");
       } else {
-        // ✅ הרשמה: POST /signup/
         await fetchJson(`/api/events/${eventObj.id}/signup/`, {
           token,
           method: "POST",
