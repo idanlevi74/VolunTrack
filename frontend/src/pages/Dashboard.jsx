@@ -351,9 +351,6 @@ export default function Dashboard() {
           <br />
           כשייצרת אירוע חדש – הוא יופיע פה
           <div style={{ marginTop: 14 }}>
-            <Link className="btnSmall" to="/org-admin/events">
-              ניהול אירועים
-            </Link>
           </div>
         </div>
       );
