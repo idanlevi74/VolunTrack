@@ -1,12 +1,12 @@
 from rest_framework import serializers
+from django.db.models import Count
 from .models import Event, EventSignup
 
 
 class EventSerializer(serializers.ModelSerializer):
-    # ✅ כדי שהפרונט יוכל להציג "נרשמו / נשארו"
-    signups_count = serializers.IntegerField(source="signups.count", read_only=True)
+    # ✅ ספירה בטוחה של נרשמים – לא תלוי ב-related_name
+    signups_count = serializers.SerializerMethodField()
 
-    # אם אצלך זה קיים (כמו שכתבת קודם)
     org_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -28,13 +28,16 @@ class EventSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["organization", "created_at", "signups_count"]
 
+    def get_signups_count(self, obj):
+        # ✅ עובד תמיד, גם אם אין related_name
+        return EventSignup.objects.filter(event=obj).count()
+
     def get_org_name(self, obj):
         org = getattr(obj, "organization", None)
         return getattr(org, "email", "") if org else ""
 
 
 class EventSignupSerializer(serializers.ModelSerializer):
-    # ✅ לא נופל אם אין vol_profile / full_name
     volunteer_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -46,11 +49,11 @@ class EventSignupSerializer(serializers.ModelSerializer):
         if not v:
             return ""
 
-        # ננסה לקחת full_name מהפרופיל אם קיים
+        # ננסה full_name מהפרופיל אם קיים
         profile = getattr(v, "vol_profile", None)
         full_name = getattr(profile, "full_name", None) if profile else None
         if full_name:
             return full_name
 
-        # fallback
+        # fallback בטוח
         return getattr(v, "email", "") or str(v)
