@@ -1,33 +1,33 @@
-/* ExploreEvents – CSS ייעודי: מונע חפיפות ומייצב פריסה במובייל ובווב */
+/* ExploreEvents – Scoped under .explorePage כדי למנוע התנגשויות */
 .explorePage {
   direction: rtl;
 }
 
 /* הודעות */
-.exploreNotice {
+.explorePage .exploreNotice {
   margin-bottom: 12px;
 }
-.exploreNotice__title {
+.explorePage .exploreNotice__title {
   font-weight: 900;
   margin-bottom: 6px;
 }
-.exploreNotice__text {
+.explorePage .exploreNotice__text {
   font-weight: 800;
   line-height: 1.8;
   color: var(--muted);
 }
-.exploreNotice--ok {
+.explorePage .exploreNotice--ok {
   border-color: rgba(34, 197, 94, 0.35);
 }
-.exploreNotice--err {
+.explorePage .exploreNotice--err {
   border-color: rgba(239, 68, 68, 0.35);
 }
-.exploreNotice__actions {
+.explorePage .exploreNotice__actions {
   margin-top: 12px;
 }
 
 /* פילטרים: רספונסיבי ולא נתקע */
-.exploreFilters {
+.explorePage .exploreFilters {
   display: grid;
   grid-template-columns: 160px 160px 1fr;
   gap: 12px;
@@ -35,13 +35,13 @@
 }
 
 @media (max-width: 700px) {
-  .exploreFilters {
+  .explorePage .exploreFilters {
     grid-template-columns: 1fr;
   }
 }
 
 /* גריד כרטיסים יציב */
-.exploreGrid {
+.explorePage .exploreGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
@@ -49,19 +49,19 @@
 }
 
 @media (max-width: 1024px) {
-  .exploreGrid {
+  .explorePage .exploreGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .exploreGrid {
+  .explorePage .exploreGrid {
     grid-template-columns: 1fr;
   }
 }
 
 /* כרטיס – שלא "ייכנסו" אחד בשני */
-.exploreCard {
+.explorePage .exploreCard {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -69,16 +69,18 @@
 }
 
 /* טקסטים ארוכים לא שוברים layout */
-.exploreCard .cardTitle,
-.exploreCard .cardMeta {
+/* שימי לב: פה הסכנה להתנגשות היא עם .cardTitle/.cardMeta הגלובליים,
+   לכן אנחנו מגבילים אותם רק כאשר הם בתוך .exploreCard בדף הזה */
+.explorePage .exploreCard .cardTitle,
+.explorePage .exploreCard .cardMeta {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* לב הבעיה שלך: הכפתורים חייבים להיות flex + wrap */
-.exploreCardActions {
+/* לב הבעיה: הכפתורים חייבים להיות flex + wrap */
+.explorePage .exploreCardActions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -87,7 +89,7 @@
 }
 
 /* כפתורים לא נמחצים ולא "מטפסים" */
-.exploreBtn {
+.explorePage .exploreBtn {
   flex: 0 0 auto;
   min-width: 96px;
   text-align: center;
@@ -96,27 +98,29 @@
 
 /* בנייד מאוד קטן – שני כפתורים יקפצו שורה במקום לחפוף */
 @media (max-width: 420px) {
-  .exploreBtn {
+  .explorePage .exploreBtn {
     flex: 1 1 140px;
     min-width: 0;
   }
 }
 
 /* הדגשה עדינה לכפתור הראשי */
-.exploreBtnPrimary {
+.explorePage .exploreBtnPrimary {
   font-weight: 900;
 }
-.exploreBtnDanger {
+
+/* Danger */
+.explorePage .exploreBtnDanger {
   background: #dc2626;
   color: #fff;
   border-color: #dc2626;
 }
 
-.exploreBtnDanger:hover {
+.explorePage .exploreBtnDanger:hover {
   filter: brightness(0.95);
 }
 
-.exploreBtnDanger:disabled {
+.explorePage .exploreBtnDanger:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
