@@ -46,6 +46,12 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("he-IL");
 }
 
+function asList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload?.results && Array.isArray(payload.results)) return payload.results;
+  return [];
+}
+
 export default function ExploreEvents() {
   const token = localStorage.getItem("accessToken") || "";
 
@@ -59,7 +65,7 @@ export default function ExploreEvents() {
   const [signupBusyId, setSignupBusyId] = useState(null);
   const [toast, setToast] = useState("");
 
-  // ✅ סט של event ids שהמשתמש כבר רשום אליהם
+  // ✅ כאן נשמור את כל ה-event ids שהמשתמש רשום אליהם (נטען לפני כל האירועים)
   const [signedEventIds, setSignedEventIds] = useState(() => new Set());
 
   const categoriesFromData = useMemo(() => {
@@ -85,29 +91,50 @@ export default function ExploreEvents() {
       try {
         if (!API_BASE) {
           setEvents([]);
+          setSignedEventIds(new Set());
           return;
         }
 
+        // ✅ 1) קודם נביא את "האירועים שלי" (upcoming + history) כדי שהכפתור יהיה נכון מיד
+        if (token) {
+          try {
+            const [up, hist] = await Promise.all([
+              fetchJson("/api/events/?status=upcoming", {
+                token,
+                signal: controller.signal,
+              }),
+              fetchJson("/api/events/?status=history", {
+                token,
+                signal: controller.signal,
+              }),
+            ]);
+
+            const myUpcoming = asList(up);
+            const myHistory = asList(hist);
+
+            const ids = new Set(
+              [...myUpcoming, ...myHistory]
+                .map((e) => e?.id)
+                .filter((id) => id !== null && id !== undefined)
+            );
+
+            setSignedEventIds(ids);
+          } catch {
+            // אם למשתמש אין הרשאות/לא מתנדב/או כל בעיה אחרת — לא מפילים את המסך
+            setSignedEventIds(new Set());
+          }
+        } else {
+          setSignedEventIds(new Set());
+        }
+
+        // ✅ 2) עכשיו נטען את כל האירועים הציבוריים למסך Explore
         const data = await fetchJson("/api/events/", {
           token,
           signal: controller.signal,
         });
 
-        const items = Array.isArray(data) ? data : data?.results || [];
+        const items = asList(data);
         setEvents(items);
-
-        // ✅ אם ה-API מחזיר שדה הרשמה (is_signed_up / signed_up) נאתחל סט בהתאם
-        const initSigned = new Set(
-          items
-            .filter(
-              (e) =>
-                e?.is_signed_up === true ||
-                e?.is_signed_up === 1 ||
-                e?.signed_up === true
-            )
-            .map((e) => e.id)
-        );
-        setSignedEventIds(initSigned);
       } catch (e) {
         if (e?.name !== "AbortError") setErr(e?.message || "שגיאה בטעינת אירועים");
       } finally {
@@ -150,16 +177,7 @@ export default function ExploreEvents() {
     setQ("");
   };
 
-  const isSignedUp = (eventObj) => {
-    // 1) אם נצבר לנו סט של הרשמות
-    if (signedEventIds.has(eventObj.id)) return true;
-
-    // 2) אם הגיע מה-API דגל הרשמה
-    if (eventObj?.is_signed_up === true || eventObj?.is_signed_up === 1) return true;
-    if (eventObj?.signed_up === true) return true;
-
-    return false;
-  };
+  const isSignedUp = (eventObj) => signedEventIds.has(eventObj.id);
 
   const handleToggleSignup = async (eventObj) => {
     if (!token) {
@@ -179,10 +197,10 @@ export default function ExploreEvents() {
 
     try {
       if (alreadySigned) {
-        // ❌ ביטול הרשמה
-        await fetchJson(`/api/events/${eventObj.id}/signup/`, {
+        // ❌ ביטול הרשמה: אצלך זה POST /cancel/
+        await fetchJson(`/api/events/${eventObj.id}/cancel/`, {
           token,
-          method: "DELETE",
+          method: "POST",
         });
 
         setSignedEventIds((prev) => {
@@ -193,7 +211,7 @@ export default function ExploreEvents() {
 
         setToast("בוטלה ההרשמה ✅");
       } else {
-        // ✅ הרשמה
+        // ✅ הרשמה: POST /signup/
         await fetchJson(`/api/events/${eventObj.id}/signup/`, {
           token,
           method: "POST",
