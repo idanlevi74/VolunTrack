@@ -72,10 +72,45 @@ function initials(text) {
   return words.map((w) => (w[0] ? w[0].toUpperCase() : "")).join("");
 }
 
+function asList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload?.results && Array.isArray(payload.results)) return payload.results;
+  return [];
+}
+
+function safeILDateTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("he-IL");
+}
+
+function escapeCsvCell(v) {
+  const s = String(v ?? "");
+  // אם יש פסיק/מרכאות/שורה חדשה — נעטוף במרכאות ונכפיל מרכאות
+  if (/[,"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadCsv(filename, rows) {
+  // BOM כדי שאקסל יציג עברית נכון
+  const bom = "\uFEFF";
+  const csv = rows.map((r) => r.map(escapeCsvCell).join(",")).join("\n");
+  const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function EventDetails() {
   const { id } = useParams();
 
-  // ✅ כפתור הרשמה יוצג רק אם התחברתי
   const token = localStorage.getItem("accessToken") || "";
 
   const [loading, setLoading] = useState(true);
@@ -84,6 +119,11 @@ export default function EventDetails() {
 
   const [actionLoading, setActionLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState("");
+
+  // ✅ משתתפים (לעמותה בלבד)
+  const [signups, setSignups] = useState([]);
+  const [signupsLoading, setSignupsLoading] = useState(false);
+  const [canSeeSignups, setCanSeeSignups] = useState(false);
 
   // דמו (אם אין API_BASE)
   const demoEvent = useMemo(
@@ -98,8 +138,8 @@ export default function EventDetails() {
       date: "2026-01-06",
       time: "20:00",
       needed_volunteers: 12,
-      // ✅ שם העמותה מגיע מהאירוע
       organization_name: "מאורות לאריאל",
+      signups_count: 5,
     }),
     [id]
   );
@@ -111,6 +151,9 @@ export default function EventDetails() {
       setLoading(true);
       setErr("");
       setActionMsg("");
+
+      setSignups([]);
+      setCanSeeSignups(false);
 
       try {
         if (!API_BASE) {
@@ -125,6 +168,26 @@ export default function EventDetails() {
         });
 
         setEvent(data);
+
+        // ✅ רק אם יש token ננסה להביא נרשמים (רק עמותה מורשית תצליח)
+        if (token) {
+          setSignupsLoading(true);
+          try {
+            const signupsData = await fetchJson(`/api/events/${id}/signups/`, {
+              token,
+              signal: controller.signal,
+            });
+
+            setSignups(asList(signupsData));
+            setCanSeeSignups(true);
+          } catch {
+            // מתנדב / עמותה אחרת -> אין הרשאה, פשוט לא מציגים את הטבלה
+            setSignups([]);
+            setCanSeeSignups(false);
+          } finally {
+            setSignupsLoading(false);
+          }
+        }
       } catch (e) {
         if (e?.name !== "AbortError") setErr(e?.message || "שגיאה בטעינת אירוע");
       } finally {
@@ -139,8 +202,6 @@ export default function EventDetails() {
   const normalized = useMemo(() => {
     if (!event) return null;
 
-    // ✅ חשוב: שם עמותה לפי האירוע
-    // מומלץ שהשרת יחזיר organization_name באופן עקבי
     const orgName =
       event.organization_name ||
       event.org_name ||
@@ -148,6 +209,12 @@ export default function EventDetails() {
       event.organization?.name ||
       event.org ||
       "";
+
+    const needed = event.needed_volunteers ?? event.needed ?? event.capacity ?? null;
+
+    // ✅ count: מהשרת (מומלץ) ואם לא קיים אז fallback
+    const signupsCountFromApi =
+      event.signups_count ?? event.signupsCount ?? event.signups_total ?? null;
 
     return {
       id: event.id ?? event.pk ?? id,
@@ -158,8 +225,9 @@ export default function EventDetails() {
       time: event.time ?? event.event_time ?? "",
       location: event.location ?? event.address ?? "",
       city: event.city ?? "",
-      needed: event.needed_volunteers ?? event.needed ?? event.capacity ?? null,
+      needed,
       orgName,
+      signupsCountFromApi,
     };
   }, [event, id]);
 
@@ -168,7 +236,7 @@ export default function EventDetails() {
       setActionMsg("✅ דמו: נרשמת לאירוע בהצלחה");
       return;
     }
-    if (!token) return; // לא אמור להגיע לפה כי לא מציגים כפתור
+    if (!token) return;
 
     setActionLoading(true);
     setActionMsg("");
@@ -180,6 +248,12 @@ export default function EventDetails() {
         body: {},
       });
       setActionMsg(res?.detail || "✅ נרשמת בהצלחה!");
+
+      // אופציונלי: רענון מהיר של כמות נרשמים (נביא שוב את האירוע)
+      try {
+        const refreshed = await fetchJson(`/api/events/${id}/`, { token });
+        setEvent(refreshed);
+      } catch {}
     } catch (e) {
       setActionMsg(e?.message || "לא הצלחנו לרשום אותך לאירוע");
     } finally {
@@ -204,6 +278,12 @@ export default function EventDetails() {
         body: {},
       });
       setActionMsg(res?.detail || "✅ בוטלה ההרשמה");
+
+      // אופציונלי: רענון מהיר של כמות נרשמים
+      try {
+        const refreshed = await fetchJson(`/api/events/${id}/`, { token });
+        setEvent(refreshed);
+      } catch {}
     } catch (e) {
       setActionMsg(e?.message || "לא הצלחנו לבטל הרשמה");
     } finally {
@@ -214,15 +294,56 @@ export default function EventDetails() {
   const metaDate = normalized?.date ? formatDateIL(normalized.date) : "";
   const metaTime = normalized?.time ? formatTimeIL(normalized.time) : "";
   const metaPlace = normalized ? prettyAddress(normalized.location, normalized.city) : "";
+
   const hasNeeded =
     normalized?.needed !== null &&
     normalized?.needed !== undefined &&
     String(normalized?.needed) !== "";
 
+  // ✅ כמות נרשמים לציבור:
+  // - אם יש signups_count מהשרת -> נשתמש בו
+  // - אחרת, אם העמותה רואה טבלה -> נשתמש באורך הרשימה
+  const publicSignupsCount =
+    normalized?.signupsCountFromApi !== null && normalized?.signupsCountFromApi !== undefined
+      ? Number(normalized.signupsCountFromApi)
+      : canSeeSignups
+        ? signups.length
+        : null;
+
+  const remaining =
+    hasNeeded && publicSignupsCount !== null
+      ? Math.max(Number(normalized.needed) - Number(publicSignupsCount), 0)
+      : null;
+
   const shareText = encodeURIComponent(
     `מצאתי אירוע התנדבות ב-VolunTrack: ${normalized?.title || ""}${metaDate ? " — " + metaDate : ""}`
   );
   const shareUrl = encodeURIComponent(window.location.href);
+
+  function exportParticipantsToExcel() {
+    // CSV שמיועד לאקסל
+    const rows = [
+      ["#", "שם מתנדב/ת", "תאריך הרשמה"],
+      ...signups.map((s, idx) => {
+        const name =
+          s?.volunteer_name ||
+          s?.volunteer?.vol_profile?.full_name ||
+          s?.volunteer?.full_name ||
+          s?.volunteer?.email ||
+          "מתנדב/ת";
+
+        const when = safeILDateTime(s?.created_at);
+
+        return [idx + 1, name, when];
+      }),
+    ];
+
+    const safeTitle = (normalized?.title || "event")
+      .replace(/[\\/:*?"<>|]/g, "")
+      .slice(0, 60);
+
+    downloadCsv(`participants_${safeTitle}_${normalized?.id || id}.csv`, rows);
+  }
 
   if (loading) {
     return (
@@ -279,7 +400,6 @@ export default function EventDetails() {
 
             <div className="ed__pillsTop">
               {normalized.category ? <span className="ed__pill">{normalized.category}</span> : null}
-              {/* ✅ שם העמותה לפי האירוע */}
               {normalized.orgName ? <span className="ed__pill">{normalized.orgName}</span> : null}
             </div>
 
@@ -292,6 +412,15 @@ export default function EventDetails() {
                 {metaPlace ? <span className="ed__pill ed__pillMeta">📍 {metaPlace}</span> : null}
                 {hasNeeded ? (
                   <span className="ed__pill ed__pillMeta">👥 נדרשים: {normalized.needed}</span>
+                ) : null}
+
+                {/* ✅ חדש: כמות נרשמים + נשארו */}
+                {publicSignupsCount !== null ? (
+                  <span className="ed__pill ed__pillMeta">✅ נרשמו: {publicSignupsCount}</span>
+                ) : null}
+
+                {remaining !== null ? (
+                  <span className="ed__pill ed__pillMeta">🟦 נשארו: {remaining}</span>
                 ) : null}
               </div>
             </div>
@@ -338,6 +467,65 @@ export default function EventDetails() {
                 </div>
 
                 {actionMsg ? <div className="ed__msg">{actionMsg}</div> : null}
+
+                {/* ✅ חדש: טבלת משתתפים לעמותה */}
+                {canSeeSignups ? (
+                  <div className="ed__participantsBox">
+                    <div className="ed__participantsTop">
+                      <div className="ed__panelTitle" style={{ margin: 0 }}>
+                        משתתפים שנרשמו
+                      </div>
+
+                      <button
+                        className="btnSmall"
+                        type="button"
+                        onClick={exportParticipantsToExcel}
+                        disabled={signupsLoading || signups.length === 0}
+                        title="CSV שנפתח באקסל"
+                      >
+                        ייצוא לאקסל
+                      </button>
+                    </div>
+
+                    {signupsLoading ? (
+                      <div className="ed__participantsHint">טוען משתתפים… ⏳</div>
+                    ) : signups.length === 0 ? (
+                      <div className="ed__participantsHint">עדיין אין נרשמים לאירוע 🙂</div>
+                    ) : (
+                      <div className="ed__tableWrap">
+                        <table className="ed__table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: 60 }}>#</th>
+                              <th>שם</th>
+                              <th style={{ width: 220 }}>תאריך הרשמה</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {signups.map((s, idx) => {
+                              const name =
+                                s?.volunteer_name ||
+                                s?.volunteer?.vol_profile?.full_name ||
+                                s?.volunteer?.full_name ||
+                                s?.volunteer?.email ||
+                                "מתנדב/ת";
+
+                              const when = safeILDateTime(s?.created_at);
+
+                              return (
+                                <tr key={s?.id || `${name}-${idx}`}>
+                                  <td>{idx + 1}</td>
+                                  <td style={{ fontWeight: 800 }}>{name}</td>
+                                  <td>{when || "—"}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
 
               {/* right */}
@@ -345,13 +533,12 @@ export default function EventDetails() {
                 <div className="ed__orgRow">
                   <div className="ed__avatar">{initials(normalized.orgName)}</div>
                   <div>
-                    {/* ✅ שם עמותה לפי האירוע */}
                     <div className="ed__orgName">{normalized.orgName || "עמותה"}</div>
                     <div className="ed__orgHint">מארגנת האירוע</div>
                   </div>
                 </div>
 
-                {/* ✅ כפתור הרשמה מופיע רק אם התחברתי */}
+                {/* כפתורי הרשמה (כרגע לפי token בלבד, כמו שהיה אצלך) */}
                 {token ? (
                   <div className="ed__ctaCol">
                     <button
@@ -392,6 +579,10 @@ export default function EventDetails() {
                     {metaTime ? <div>⏰ {metaTime}</div> : null}
                     {metaPlace ? <div>📍 {metaPlace}</div> : null}
                     {hasNeeded ? <div>👥 נדרשים: {normalized.needed}</div> : null}
+
+                    {/* ✅ חדש: כמות נרשמים + נשארו (לכולם) */}
+                    {publicSignupsCount !== null ? <div>✅ נרשמו: {publicSignupsCount}</div> : null}
+                    {remaining !== null ? <div>🟦 נשארו: {remaining}</div> : null}
                   </div>
                 </div>
               </aside>

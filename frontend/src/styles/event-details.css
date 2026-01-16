@@ -260,3 +260,53 @@
     grid-template-columns: 1fr;
   }
 }
+/* Participants table (EventDetails) */
+.ed__participantsBox{
+  margin-top: 16px;
+  border-top: 1px solid var(--line, #e5e7eb);
+  padding-top: 14px;
+}
+
+.ed__participantsTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom: 10px;
+}
+
+.ed__participantsHint{
+  color: var(--muted);
+  font-weight: 700;
+  padding: 8px 0;
+}
+
+.ed__tableWrap{
+  overflow: auto;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 14px;
+}
+
+.ed__table{
+  width:100%;
+  border-collapse: collapse;
+  background:#fff;
+  min-width: 520px;
+}
+
+.ed__table th,
+.ed__table td{
+  padding: 12px 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--line, #eef2f7);
+  white-space: nowrap;
+}
+
+.ed__table thead th{
+  font-weight: 900;
+  background: #f8fafc;
+}
+
+.ed__table tbody tr:hover{
+  background: #f9fafb;
+}
