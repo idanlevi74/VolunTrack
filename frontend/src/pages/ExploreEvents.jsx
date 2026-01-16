@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import "./styles/explore-events.css"; // ✅ CSS ייעודי למסך הזה
+import "../styles/explore-events.css"; // ✅ CSS ייעודי למסך הזה
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
