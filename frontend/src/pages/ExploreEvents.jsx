@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import "./styles/explore-events.css"; // ✅ CSS ייעודי למסך הזה
+import "../styles/explore-events.css"; // ✅ CSS ייעודי למסך הזה
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -38,6 +38,7 @@ async function fetchJson(path, { token, signal, method = "GET", body } = {}) {
 
   return data;
 }
+
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -57,6 +58,9 @@ export default function ExploreEvents() {
   const [events, setEvents] = useState([]);
   const [signupBusyId, setSignupBusyId] = useState(null);
   const [toast, setToast] = useState("");
+
+  // ✅ סט של event ids שהמשתמש כבר רשום אליהם
+  const [signedEventIds, setSignedEventIds] = useState(() => new Set());
 
   const categoriesFromData = useMemo(() => {
     const set = new Set();
@@ -91,6 +95,19 @@ export default function ExploreEvents() {
 
         const items = Array.isArray(data) ? data : data?.results || [];
         setEvents(items);
+
+        // ✅ אם ה-API מחזיר שדה הרשמה (is_signed_up / signed_up) נאתחל סט בהתאם
+        const initSigned = new Set(
+          items
+            .filter(
+              (e) =>
+                e?.is_signed_up === true ||
+                e?.is_signed_up === 1 ||
+                e?.signed_up === true
+            )
+            .map((e) => e.id)
+        );
+        setSignedEventIds(initSigned);
       } catch (e) {
         if (e?.name !== "AbortError") setErr(e?.message || "שגיאה בטעינת אירועים");
       } finally {
@@ -133,7 +150,18 @@ export default function ExploreEvents() {
     setQ("");
   };
 
-  const handleSignup = async (eventId) => {
+  const isSignedUp = (eventObj) => {
+    // 1) אם נצבר לנו סט של הרשמות
+    if (signedEventIds.has(eventObj.id)) return true;
+
+    // 2) אם הגיע מה-API דגל הרשמה
+    if (eventObj?.is_signed_up === true || eventObj?.is_signed_up === 1) return true;
+    if (eventObj?.signed_up === true) return true;
+
+    return false;
+  };
+
+  const handleToggleSignup = async (eventObj) => {
     if (!token) {
       setToast("כדי להירשם לאירוע צריך להתחבר כמתנדב/ת.");
       return;
@@ -143,18 +171,44 @@ export default function ExploreEvents() {
       return;
     }
 
-    setSignupBusyId(eventId);
+    const alreadySigned = isSignedUp(eventObj);
+
+    setSignupBusyId(eventObj.id);
     setErr("");
     setToast("");
 
     try {
-      await fetchJson(`/api/events/${eventId}/signup/`, {
-        token,
-        method: "POST",
-      });
-      setToast("נרשמת בהצלחה ✅");
+      if (alreadySigned) {
+        // ❌ ביטול הרשמה
+        await fetchJson(`/api/events/${eventObj.id}/signup/`, {
+          token,
+          method: "DELETE",
+        });
+
+        setSignedEventIds((prev) => {
+          const next = new Set(prev);
+          next.delete(eventObj.id);
+          return next;
+        });
+
+        setToast("בוטלה ההרשמה ✅");
+      } else {
+        // ✅ הרשמה
+        await fetchJson(`/api/events/${eventObj.id}/signup/`, {
+          token,
+          method: "POST",
+        });
+
+        setSignedEventIds((prev) => {
+          const next = new Set(prev);
+          next.add(eventObj.id);
+          return next;
+        });
+
+        setToast("נרשמת בהצלחה ✅");
+      }
     } catch (e) {
-      setToast(e?.message || "שגיאה בהרשמה");
+      setToast(e?.message || (alreadySigned ? "שגיאה בביטול הרשמה" : "שגיאה בהרשמה"));
     } finally {
       setSignupBusyId(null);
     }
@@ -248,13 +302,16 @@ export default function ExploreEvents() {
                   e?.organization?.email ||
                   "עמותה";
 
+                const signed = isSignedUp(e);
+                const busy = signupBusyId === e.id;
+
                 return (
                   <div key={e.id} className="card exploreCard">
                     <div className="cardTitle">{e.title}</div>
 
                     <div className="cardMeta">
-                        {orgName} • {e.location} • {e.category}
-                        {e.date ? ` • ${formatDate(e.date)}` : ""}
+                      {orgName} • {e.location} • {e.category}
+                      {e.date ? ` • ${formatDate(e.date)}` : ""}
                     </div>
 
                     <div className="cardActions exploreCardActions">
@@ -263,12 +320,14 @@ export default function ExploreEvents() {
                       </Link>
 
                       <button
-                        className="btnSmall exploreBtn exploreBtnPrimary"
+                        className={`btnSmall exploreBtn ${
+                          signed ? "exploreBtnDanger" : "exploreBtnPrimary"
+                        }`}
                         type="button"
-                        disabled={signupBusyId === e.id}
-                        onClick={() => handleSignup(e.id)}
+                        disabled={busy}
+                        onClick={() => handleToggleSignup(e)}
                       >
-                        {signupBusyId === e.id ? "נרשם..." : "הרשמה"}
+                        {busy ? "שולח..." : signed ? "ביטול הרשמה" : "הרשמה"}
                       </button>
                     </div>
                   </div>
