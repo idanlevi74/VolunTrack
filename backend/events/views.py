@@ -287,10 +287,10 @@ class DashboardStatsView(APIView):
 
         rated_qs = EventSignup.objects.filter(
             volunteer=request.user,
-            rating_avg__isnull=False
+            rating__isnull=False      # ✅ שדה נכון
         )
 
-        avg_rating = rated_qs.aggregate(avg=Avg("rating_avg"))["avg"]
+        avg_rating = rated_qs.aggregate(avg=Avg("rating"))["avg"]   # ✅ שדה נכון
         ratings_count = rated_qs.count()
 
         reliability = round(float(avg_rating), 2) if avg_rating is not None else 0
@@ -301,8 +301,8 @@ class DashboardStatsView(APIView):
             profile.save(update_fields=["reliability_score"])
 
         return Response({
-            "reliability_score": reliability,   # ⭐ ממוצע כולל 1–5
-            "ratings_count": ratings_count,     # כמה אירועים דורגו
+            "reliability_score": reliability,
+            "ratings_count": ratings_count,
             "activities_count": activities_count,
             "hours_total": 0,
         })
@@ -312,5 +312,5 @@ class OrgAdminView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        u = request.user
-        return Response({"can_manage": u.role in (u.Role.ORG, u.Role.ADMIN)})
+        role = str(getattr(request.user, "role", "")).upper()
+        return Response({"can_manage": role in ("ORG", "ADMIN")})
