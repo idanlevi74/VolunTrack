@@ -19,7 +19,7 @@ import useDashboardData from "../components/dashboard/useDashboardData";
 import useDashboardReports from "../components/dashboard/useDashboardReports";
 
 // utils
-import { getRole, formatDateIL } from "../utils/dashboardUtils";
+import { getRole, formatDateIL } from "../components/dashboard/dashboardUtils";
 
 export default function Dashboard() {
   const {
