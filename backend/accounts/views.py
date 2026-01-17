@@ -11,7 +11,8 @@ from google.auth.transport import requests as google_requests
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import RegisterVolunteerSerializer, RegisterOrgSerializer
+from .serializers import RegisterVolunteerSerializer, RegisterOrgSerializer, VolunteerProfileSerializer
+from .models import VolunteerProfile
 
 User = get_user_model()
 
@@ -175,3 +176,10 @@ class GoogleLoginView(APIView):
             },
             "created": created,
         })
+class MyVolunteerProfileView(generics.RetrieveUpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = VolunteerProfileSerializer
+
+    def get_object(self):
+        # אם אין למשתמש פרופיל מתנדב - זה יזרוק 500, אז עדיף להגן:
+        return VolunteerProfile.objects.get(user=self.request.user)

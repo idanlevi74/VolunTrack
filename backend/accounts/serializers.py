@@ -114,3 +114,8 @@ class RegisterOrgSerializer(serializers.ModelSerializer):
             "role": instance.role,
             "org_name": getattr(org_profile, "org_name", ""),
         }
+class VolunteerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VolunteerProfile
+        fields = ["full_name", "phone", "city", "points", "reliability_score"]
+        read_only_fields = ["points", "reliability_score"]

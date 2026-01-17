@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 import stripe
 
-from rest_framework import viewsets, permissions, status, serializers
+from rest_framework import viewsets, permissions, status, serializers, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -201,3 +201,4 @@ def stripe_webhook(request):
                 pass
 
     return HttpResponse(status=200)
+
