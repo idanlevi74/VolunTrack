@@ -15,8 +15,8 @@ import OrgDonations from "../components/dashboard/OrgDonations";
 import OrgSidebar from "../components/dashboard/OrgSidebar";
 
 // hooks
-import useDashboardData from "../hooks/useDashboardData";
-import useDashboardReports from "../hooks/useDashboardReports";
+import useDashboardData from "../components/dashboard/useDashboardData";
+import useDashboardReports from "../components/dashboard/useDashboardReports";
 
 // utils
 import { getRole, formatDateIL } from "../utils/dashboardUtils";
@@ -81,20 +81,14 @@ export default function Dashboard() {
       : "אפשר לשפר 💪";
 
   const {
-    reportBusy,
-    reportMsg,
-    exportVolunteerDonationsCsv,
-    exportVolunteerEventsHistoryCsv,
-    exportOrgDonationsCsv,
-    exportOrgEventsAndSignupsCsv,
-  } = useDashboardReports({
-    upcoming,
-    history,
-    donations,
-    orgUpcoming,
-    orgHistory,
-    orgDonations,
-  });
+  reportBusy,
+  reportMsg,
+  exportVolunteerDonationsCsv,
+  exportVolunteerEventsHistoryCsv,
+  exportOrgDonationsCsv,
+  exportOrgEventsAndSignupsCsv,
+} = useDashboardReports();
+
 
   return (
     <main className="page">
