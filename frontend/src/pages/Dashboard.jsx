@@ -25,29 +25,6 @@ function mapActivity(a) {
     my_rating: a.my_rating ?? a.rating ?? null,
   };
 }
-const [cancelBusyId, setCancelBusyId] = useState(null);
-
-async function cancelSignup(eventId) {
-  if (!eventId || cancelBusyId) return;
-
-  const ok = window.confirm("לבטל הרשמה לאירוע?");
-  if (!ok) return;
-
-  setCancelBusyId(eventId);
-  setErr("");
-  setReportMsg("");
-
-  try {
-    await apiFetch(`/api/events/${eventId}/signup/`, { method: "DELETE" });
-
-    // ✅ עדכון מיידי ב-UI
-    setUpcoming((prev) => prev.filter((e) => e.id !== eventId));
-  } catch (e) {
-    setErr(e?.message || "לא הצלחתי לבטל הרשמה");
-  } finally {
-    setCancelBusyId(null);
-  }
-}
 function mapDonation(d) {
   return {
     id: d.id ?? d.pk,
@@ -135,7 +112,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("upcoming");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-
+  const [cancelBusyId, setCancelBusyId] = useState(null);
   const [profile, setProfile] = useState(null);
 
   // volunteer
@@ -166,7 +143,27 @@ export default function Dashboard() {
     }),
     []
   );
+async function cancelSignup(eventId) {
+  if (!eventId || cancelBusyId) return;
 
+  const ok = window.confirm("לבטל הרשמה לאירוע?");
+  if (!ok) return;
+
+  setCancelBusyId(eventId);
+  setErr("");
+  setReportMsg("");
+
+  try {
+    await apiFetch(`/api/events/${eventId}/signup/`, { method: "DELETE" });
+
+    // ✅ עדכון מיידי ב-UI
+    setUpcoming((prev) => prev.filter((e) => e.id !== eventId));
+  } catch (e) {
+    setErr(e?.message || "לא הצלחתי לבטל הרשמה");
+  } finally {
+    setCancelBusyId(null);
+  }
+}
   useEffect(() => {
     let alive = true;
 
