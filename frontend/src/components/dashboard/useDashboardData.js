@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../api/client";
+import { apiFetch } from "../../api/client";
 
 // ===== helpers =====
 function asList(payload) {

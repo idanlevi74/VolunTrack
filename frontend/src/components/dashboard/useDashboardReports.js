@@ -1,7 +1,7 @@
 // src/frontend/src/hooks/useDashboardReports.js
 import { useState } from "react";
-import { apiFetch } from "../api/client";
-import { downloadCsv, runWithConcurrency, todayIsoLocal } from "../utils/dashboardUtils";
+import { apiFetch } from "../../api/client";
+import { downloadCsv, runWithConcurrency, todayIsoLocal } from "./dashboardUtils";
 
 // helpers מקומיים לדוח
 function asList(payload) {
