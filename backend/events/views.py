@@ -41,7 +41,7 @@ class EventViewSet(viewsets.ModelViewSet):
         today = timezone.localdate()
 
         # 🏢 עמותה — רואה את האירועים שלה, עם פילטר upcoming/history אם ביקשו
-        if user.role == user.Role.ORG:
+        if getattr(user, "role", None) == "ORG":
             org_qs = qs.filter(organization=user)
 
             if status_param == "upcoming":

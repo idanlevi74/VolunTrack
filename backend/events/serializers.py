@@ -57,11 +57,11 @@ class EventSerializer(serializers.ModelSerializer):
         req = self.context.get("request")
         user = getattr(req, "user", None)
 
-        if not user or not user.is_authenticated:
+        if not user or not getattr(user, "is_authenticated", False):
             return None
 
-        # אם יש אצלך Roles אחרים, זה עדיין בטוח (רק מתנדב צריך לראות my_rating)
-        if getattr(user, "role", None) != user.Role.VOLUNTEER:
+        # ✅ לעמותה/אדמין לא מחשבים דירוג בכלל
+        if getattr(user, "role", None) != "VOLUNTEER":
             return None
 
         signup = (
@@ -70,7 +70,7 @@ class EventSerializer(serializers.ModelSerializer):
             .only("rating")
             .first()
         )
-        return getattr(signup, "rating", None) if signup else None
+        return signup.rating if signup and signup.rating is not None else None
 
 
 class EventSignupSerializer(serializers.ModelSerializer):
