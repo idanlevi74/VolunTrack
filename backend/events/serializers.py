@@ -57,22 +57,22 @@ class EventSerializer(serializers.ModelSerializer):
         req = self.context.get("request")
         user = getattr(req, "user", None)
 
+        # 👀 אורח / אין request / לא מחובר -> אין my_rating
         if not user or not getattr(user, "is_authenticated", False):
             return None
 
-        # ✅ רק מתנדב מקבל my_rating (לעמותה מחזירים None בלי להתרסק)
+        # ✅ רק מתנדב מחובר רואה my_rating
         role = getattr(user, "role", None)
-        if isinstance(role, str):
-            if role.upper() != "VOLUNTEER":
-                return None
-        else:
-            # אם זה Enum/Choice, ננסה להשוות ל-User.Role.VOLUNTEER אם קיים
-            enum = getattr(user, "Role", None)
-            if enum and hasattr(enum, "VOLUNTEER"):
-                if role != enum.VOLUNTEER:
-                    return None
-            else:
-                return None
+        if str(role).upper() != "VOLUNTEER":
+            return None
+
+        signup = (
+            EventSignup.objects
+            .filter(event=obj, volunteer=user)
+            .only("rating")
+            .first()
+        )
+        return getattr(signup, "rating", None) if signup else None
 
         signup = (
             EventSignup.objects
