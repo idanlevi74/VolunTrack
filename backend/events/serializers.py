@@ -60,9 +60,19 @@ class EventSerializer(serializers.ModelSerializer):
         if not user or not getattr(user, "is_authenticated", False):
             return None
 
-        # ✅ לעמותה/אדמין לא מחשבים דירוג בכלל
-        if getattr(user, "role", None) != "VOLUNTEER":
-            return None
+        # ✅ רק מתנדב מקבל my_rating (לעמותה מחזירים None בלי להתרסק)
+        role = getattr(user, "role", None)
+        if isinstance(role, str):
+            if role.upper() != "VOLUNTEER":
+                return None
+        else:
+            # אם זה Enum/Choice, ננסה להשוות ל-User.Role.VOLUNTEER אם קיים
+            enum = getattr(user, "Role", None)
+            if enum and hasattr(enum, "VOLUNTEER"):
+                if role != enum.VOLUNTEER:
+                    return None
+            else:
+                return None
 
         signup = (
             EventSignup.objects
@@ -70,7 +80,7 @@ class EventSerializer(serializers.ModelSerializer):
             .only("rating")
             .first()
         )
-        return signup.rating if signup and signup.rating is not None else None
+        return getattr(signup, "rating", None) if signup else None
 
 
 class EventSignupSerializer(serializers.ModelSerializer):

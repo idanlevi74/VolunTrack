@@ -22,7 +22,30 @@ from accounts.permissions import IsOrganization, IsVolunteer
 from .models import Event, EventSignup
 from . import serializers as s
 
+def user_has_role(user, role_name: str) -> bool:
+    """
+    עובד גם אם role נשמר כמחרוזת ("ORG"/"VOLUNTEER")
+    וגם אם יש Enum פנימי user.Role.ORG
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
 
+    user_role = getattr(user, "role", None)
+
+    # מקרה 1: role נשמר כמחרוזת
+    if isinstance(user_role, str):
+        return user_role.upper() == role_name.upper()
+
+    # מקרה 2: role הוא Enum/Choice (משווים לערך/שם)
+    try:
+        enum = getattr(user, "Role", None)
+        if enum and hasattr(enum, role_name):
+            return user_role == getattr(enum, role_name)
+    except Exception:
+        pass
+
+    # fallback: השוואה ל-string של האובייקט
+    return str(user_role).upper() == role_name.upper()
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = s.EventSerializer
 
@@ -33,15 +56,14 @@ class EventViewSet(viewsets.ModelViewSet):
         user = self.request.user
         qs = Event.objects.all()
 
-        # 👀 לא מחובר — רואה הכל
         if not user or not user.is_authenticated:
             return qs
 
         status_param = self.request.query_params.get("status")
         today = timezone.localdate()
 
-        # 🏢 עמותה — רואה את האירועים שלה, עם פילטר upcoming/history אם ביקשו
-        if getattr(user, "role", None) == "ORG":
+        # 🏢 עמותה
+        if user_has_role(user, "ORG"):
             org_qs = qs.filter(organization=user)
 
             if status_param == "upcoming":
@@ -52,12 +74,9 @@ class EventViewSet(viewsets.ModelViewSet):
 
             return org_qs
 
-        # 🙋 מתנדב — "שלי" לפי status
+        # 🙋 מתנדב
         if status_param in ("upcoming", "history"):
-            my_event_ids = (
-                EventSignup.objects.filter(volunteer=user)
-                .values_list("event_id", flat=True)
-            )
+            my_event_ids = EventSignup.objects.filter(volunteer=user).values_list("event_id", flat=True)
             my_events = qs.filter(id__in=my_event_ids).distinct()
 
             if status_param == "upcoming":
