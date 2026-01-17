@@ -3,7 +3,7 @@ import React, { useMemo } from "react";
 
 // components
 import DashboardTabs from "../components/dashboard/DashboardTabs";
-
+import VolunteerProfileCard from "../components/dashboard/VolunteerProfileCard";
 import VolunteerUpcoming from "../components/dashboard/VolunteerUpcoming";
 import VolunteerHistory from "../components/dashboard/VolunteerHistory";
 import VolunteerDonations from "../components/dashboard/VolunteerDonations";
@@ -55,6 +55,7 @@ export default function Dashboard() {
         { id: "upcoming", label: "פעילויות קרובות" },
         { id: "history", label: "פעילויות שהיו" },
         { id: "donations", label: "התרומות שלי" },
+        { id: "profile", label: "הפרטים שלי" },
       ];
     }
     if (isOrg) {
@@ -138,6 +139,9 @@ export default function Dashboard() {
                   {isVolunteer && activeTab === "donations" && (
                     <VolunteerDonations donations={donations} formatDateIL={formatDateIL} />
                   )}
+                  {isVolunteer && activeTab === "profile" && (
+                    <VolunteerProfileCard />
+                    )}
 
                   {/* ORG */}
                   {isOrg && activeTab === "orgUpcoming" && (
