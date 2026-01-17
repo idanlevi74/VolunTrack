@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
+from rest_framework.exceptions import NotFound
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
@@ -164,6 +164,20 @@ class GoogleLoginView(APIView):
             else:
                 raise
 
+        # ✅ תיקון קריטי: אם זה VOLUNTEER ואין לו VolunteerProfile (במיוחד בגוגל) — ניצור
+        try:
+            is_volunteer = (getattr(user, "role", None) == User.Role.VOLUNTEER)
+        except Exception:
+            is_volunteer = (getattr(user, "role", None) == "VOLUNTEER")
+
+        if is_volunteer and not hasattr(user, "vol_profile"):
+            VolunteerProfile.objects.create(
+                user=user,
+                full_name=payload.get("name") or email.split("@")[0],
+                phone="",
+                city="",
+            )
+
         tokens = issue_tokens(user)
 
         return Response({
@@ -181,5 +195,13 @@ class MyVolunteerProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = VolunteerProfileSerializer
 
     def get_object(self):
-        # אם אין למשתמש פרופיל מתנדב - זה יזרוק 500, אז עדיף להגן:
-        return VolunteerProfile.objects.get(user=self.request.user)
+        u = self.request.user
+
+        # אם זה לא מתנדב – אין פרופיל מתנדב
+        if getattr(u, "role", None) != "VOLUNTEER":
+            raise NotFound("Volunteer profile exists only for VOLUNTEER users")
+
+        try:
+            return VolunteerProfile.objects.get(user=u)
+        except VolunteerProfile.DoesNotExist:
+            raise NotFound("Volunteer profile not found for this user")
