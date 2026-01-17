@@ -13,6 +13,8 @@ import OrgUpcoming from "../components/dashboard/OrgUpcoming";
 import OrgHistory from "../components/dashboard/OrgHistory";
 import OrgDonations from "../components/dashboard/OrgDonations";
 import OrgSidebar from "../components/dashboard/OrgSidebar";
+import OrgProfileCard from "../components/dashboard/OrgProfileCard";
+
 
 // hooks
 import useDashboardData from "../components/dashboard/useDashboardData";
@@ -63,6 +65,7 @@ export default function Dashboard() {
         { id: "orgUpcoming", label: "אירועים קרובים" },
         { id: "orgHistory", label: "אירועים שהיו" },
         { id: "orgDonations", label: "תרומות שהתקבלו" },
+        { id: "orgProfile", label: "פרטי עמותה" },
       ];
     }
     return [{ id: "upcoming", label: "פעילויות" }];
@@ -153,6 +156,7 @@ export default function Dashboard() {
                   {isOrg && activeTab === "orgDonations" && (
                     <OrgDonations orgDonations={orgDonations} formatDateIL={formatDateIL} />
                   )}
+                    {isOrg && activeTab === "orgProfile" && <OrgProfileCard />}
                 </>
               )}
             </section>
