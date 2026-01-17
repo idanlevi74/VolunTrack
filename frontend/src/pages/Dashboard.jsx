@@ -25,7 +25,29 @@ function mapActivity(a) {
     my_rating: a.my_rating ?? a.rating ?? null,
   };
 }
+const [cancelBusyId, setCancelBusyId] = useState(null);
 
+async function cancelSignup(eventId) {
+  if (!eventId || cancelBusyId) return;
+
+  const ok = window.confirm("לבטל הרשמה לאירוע?");
+  if (!ok) return;
+
+  setCancelBusyId(eventId);
+  setErr("");
+  setReportMsg("");
+
+  try {
+    await apiFetch(`/api/events/${eventId}/signup/`, { method: "DELETE" });
+
+    // ✅ עדכון מיידי ב-UI
+    setUpcoming((prev) => prev.filter((e) => e.id !== eventId));
+  } catch (e) {
+    setErr(e?.message || "לא הצלחתי לבטל הרשמה");
+  } finally {
+    setCancelBusyId(null);
+  }
+}
 function mapDonation(d) {
   return {
     id: d.id ?? d.pk,
@@ -309,10 +331,20 @@ export default function Dashboard() {
               {a.category} {a.category ? "•" : ""} {formatDateIL(a.date)}
             </div>
             <div className="cardActions">
-              <Link className="btnSmall" to={`/events/${a.id}`}>
-                לפרטים
-              </Link>
-            </div>
+                <Link className="btnSmall" to={`/events/${a.id}`}>
+                    לפרטים
+                </Link>
+
+              <button
+                className="btnSmall"
+                type="button"
+                onClick={() => cancelSignup(a.id)}
+                disabled={cancelBusyId === a.id}
+                title="ביטול הרשמה">
+                {cancelBusyId === a.id ? "מבטל..." : "בטל הרשמה"}
+                </button>
+                </div>
+
           </div>
         ))}
       </div>
