@@ -17,19 +17,25 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             "id",
-            "title",
-            "description",
-            "category",
-            "location",
-            "city",
-            "date",
-            "time",
-            "needed_volunteers",
-            "organization",
-            "org_name",
+            "volunteer_name",
+            "volunteer_email",
             "created_at",
-            "signups_count",
-            "my_rating",
+
+            # ✅ מטא
+            "role",
+            "hours",
+            "task_desc",
+            "notes",
+
+            # ✅ דירוגים
+            "rating_reliability",
+            "rating_execution",
+            "rating_teamwork",
+            "rating",
+
+            # ✅ מי ומתי דירג
+            "rated_at",
+            "rated_by",
         ]
         read_only_fields = ["organization", "created_at", "signups_count", "my_rating"]
 
@@ -69,13 +75,31 @@ class EventSerializer(serializers.ModelSerializer):
 
 class EventSignupSerializer(serializers.ModelSerializer):
     volunteer_name = serializers.SerializerMethodField()
-
-    # ✅ אופציונלי (ממש שימושי לדוח אירועים+נרשמים לעמותה)
     volunteer_email = serializers.SerializerMethodField()
 
     class Meta:
         model = EventSignup
-        fields = ["id", "volunteer_name", "volunteer_email", "created_at"]
+        fields = [
+            "id",
+            "volunteer_name",
+            "volunteer_email",
+            "created_at",
+
+            # 🧩 שדות תפעוליים
+            "role",
+            "hours",
+            "task_desc",
+            "notes",
+
+            # ⭐ דירוגים
+            "rating_reliability",
+            "rating_execution",
+            "rating_teamwork",
+            "rating",        # ממוצע כללי
+
+            # 🕒 מטא דירוג
+            "rated_at",
+        ]
 
     def get_volunteer_name(self, obj):
         v = getattr(obj, "volunteer", None)
@@ -92,3 +116,14 @@ class EventSignupSerializer(serializers.ModelSerializer):
     def get_volunteer_email(self, obj):
         v = getattr(obj, "volunteer", None)
         return getattr(v, "email", "") if v else ""
+
+class RateSignupSerializer(serializers.Serializer):
+    signup_id = serializers.IntegerField()
+    rating_reliability = serializers.IntegerField(min_value=1, max_value=5)
+    rating_execution = serializers.IntegerField(min_value=1, max_value=5)
+    rating_teamwork = serializers.IntegerField(min_value=1, max_value=5)
+    notes = serializers.CharField(required=False, allow_blank=True)
+    role = serializers.CharField(required=False, allow_blank=True)
+    hours = serializers.CharField(required=False, allow_blank=True)
+    task_desc = serializers.CharField(required=False, allow_blank=True)
+

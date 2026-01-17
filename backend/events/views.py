@@ -10,6 +10,19 @@ from .models import Event, EventSignup
 from . import serializers as s
 
 
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from django.db.models import Avg
+
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from accounts.permissions import IsOrganization, IsVolunteer
+from .models import Event, EventSignup
+from . import serializers as s
+
+
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = s.EventSerializer
 
@@ -41,7 +54,10 @@ class EventViewSet(viewsets.ModelViewSet):
 
         # 🙋 מתנדב — "שלי" לפי status
         if status_param in ("upcoming", "history"):
-            my_event_ids = EventSignup.objects.filter(volunteer=user).values_list("event_id", flat=True)
+            my_event_ids = (
+                EventSignup.objects.filter(volunteer=user)
+                .values_list("event_id", flat=True)
+            )
             my_events = qs.filter(id__in=my_event_ids).distinct()
 
             if status_param == "upcoming":
@@ -69,6 +85,10 @@ class EventViewSet(viewsets.ModelViewSet):
 
         # 🏢 צפייה בנרשמים — רק עמותה מחוברת
         if self.action in ["signups"]:
+            return [permissions.IsAuthenticated(), IsOrganization()]
+
+        # 🏢 דירוג מתנדב — רק עמותה מחוברת
+        if self.action in ["rate"]:
             return [permissions.IsAuthenticated(), IsOrganization()]
 
         # ברירת מחדל (בטיחות)
@@ -154,11 +174,85 @@ class EventViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # ✅ תיקון 500: לא תלוי בשם vol_profile ולא יקרוס אם אין פרופיל
         qs = event.signups.select_related("volunteer").order_by("created_at")
-
         serializer = s.EventSignupSerializer(qs, many=True)
         return Response(serializer.data)
+
+    # ======================
+    # דירוג מתנדב באירוע (רק העמותה שיצרה, ורק אחרי שהאירוע עבר)
+    # POST /api/events/{id}/rate/
+    # body:
+    # {
+    #   "signup_id": 123,
+    #   "rating_reliability": 5,
+    #   "rating_execution": 4,
+    #   "rating_teamwork": 5,
+    #   "notes": "...", "role": "...", "hours": "...", "task_desc": "..."
+    # }
+    # ======================
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[permissions.IsAuthenticated, IsOrganization],
+        url_path="rate",
+    )
+    def rate(self, request, pk=None):
+        event = self.get_object()
+
+        # רק העמותה שיצרה את האירוע יכולה לדרג
+        if event.organization != request.user:
+            return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
+
+        # רק אחרי שהאירוע עבר (לפי תאריך)
+        today = timezone.localdate()
+        if event.date >= today:
+            return Response(
+                {"detail": "You can rate only after the event ends"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ser = s.RateSignupSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        signup = get_object_or_404(EventSignup, id=data["signup_id"], event=event)
+
+        # ✅ עריכה מותרת: פשוט מעדכנים מחדש
+        signup.rating_reliability = data["rating_reliability"]
+        signup.rating_execution = data["rating_execution"]
+        signup.rating_teamwork = data["rating_teamwork"]
+
+        # חישוב ציון כללי
+        signup.rating = round(
+            (signup.rating_reliability + signup.rating_execution + signup.rating_teamwork) / 3,
+            2
+        )
+
+        # מטא דירוג: "עודכן לאחרונה"
+        signup.rated_at = timezone.now()
+        signup.rated_by = request.user
+
+        # שדות אופציונליים אם נשלחו
+        for f in ["notes", "role", "hours", "task_desc"]:
+            if f in data:
+                setattr(signup, f, data[f])
+
+        signup.save()
+
+        return Response(
+            {
+                "detail": "Rated successfully",
+                "signup_id": signup.id,
+                "volunteer_id": signup.volunteer_id,
+                "rating_reliability": signup.rating_reliability,
+                "rating_execution": signup.rating_execution,
+                "rating_teamwork": signup.rating_teamwork,
+                "rating": signup.rating,
+                "rated_at": signup.rated_at,
+                "rated_by": getattr(request.user, "id", None),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class DashboardStatsView(APIView):
@@ -172,12 +266,15 @@ class DashboardStatsView(APIView):
             event__date__lt=today
         ).count()
 
-        avg_rating = EventSignup.objects.filter(
+        rated_qs = EventSignup.objects.filter(
             volunteer=request.user,
-            rating__isnull=False
-        ).aggregate(avg=Avg("rating"))["avg"]
+            rating_avg__isnull=False
+        )
 
-        reliability = round(avg_rating, 2) if avg_rating else 0
+        avg_rating = rated_qs.aggregate(avg=Avg("rating_avg"))["avg"]
+        ratings_count = rated_qs.count()
+
+        reliability = round(float(avg_rating), 2) if avg_rating is not None else 0
 
         profile = getattr(request.user, "vol_profile", None)
         if profile:
@@ -185,7 +282,8 @@ class DashboardStatsView(APIView):
             profile.save(update_fields=["reliability_score"])
 
         return Response({
-            "reliability_score": reliability,  # ⭐ 1–5
+            "reliability_score": reliability,   # ⭐ ממוצע כולל 1–5
+            "ratings_count": ratings_count,     # כמה אירועים דורגו
             "activities_count": activities_count,
             "hours_total": 0,
         })

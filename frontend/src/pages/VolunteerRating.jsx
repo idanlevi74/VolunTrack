@@ -7,8 +7,7 @@ import "../styles/VolunteerRating.css";
 // API routes
 const EVENT_DETAILS_ENDPOINT = (eventId) => `/api/events/${eventId}/`;
 const SIGNUPS_ENDPOINT = (eventId) => `/api/events/${eventId}/signups/`;
-// TODO: החליפי ל-endpoint האמיתי שלך לשמירת דירוג
-const SAVE_RATING_ENDPOINT = () => `/api/volunteer-ratings/`;
+const SAVE_RATING_ENDPOINT = (eventId) => `/api/events/${eventId}/rate/`;
 
 function asList(payload) {
   if (Array.isArray(payload)) return payload;
@@ -25,9 +24,41 @@ function emptyRating() {
     execution: "",
     teamwork: "",
     notes: "",
-    saved: false,
-    saving: false,
-    error: "",
+    saved: false,   // UI בלבד
+    saving: false,  // UI בלבד
+    error: "",      // UI בלבד
+    // אפשר לשמור גם meta תצוגה:
+    ratedAt: null,
+    ratingAvg: null,
+  };
+}
+
+function isRatedFromServer(s) {
+  // מספיק אחד מהבאים כדי להבין שיש דירוג שמור
+  return (
+    s?.rated_at != null ||
+    s?.rating != null ||
+    (s?.rating_reliability != null &&
+      s?.rating_execution != null &&
+      s?.rating_teamwork != null)
+  );
+}
+
+function hydrateFromServerSignup(s) {
+  const rated = isRatedFromServer(s);
+
+  return {
+    ...emptyRating(),
+    role: s?.role || "",
+    taskDesc: s?.task_desc || "",
+    hours: s?.hours || "",
+    reliability: s?.rating_reliability ?? "",
+    execution: s?.rating_execution ?? "",
+    teamwork: s?.rating_teamwork ?? "",
+    notes: s?.notes || "",
+    saved: rated,
+    ratedAt: s?.rated_at || null,
+    ratingAvg: s?.rating ?? null,
   };
 }
 
@@ -37,7 +68,10 @@ function RatingScale({ name, value, onChange, label }) {
       <div className="vrMetricTitle">{label}</div>
       <div className="vrScale" role="group" aria-label={label}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <label key={n} className={`vrPill ${String(value) === String(n) ? "isOn" : ""}`}>
+          <label
+            key={n}
+            className={`vrPill ${String(value) === String(n) ? "isOn" : ""}`}
+          >
             <input
               type="radio"
               name={name}
@@ -77,7 +111,6 @@ export default function VolunteerRating() {
       setLoadError("");
 
       try {
-        // נטען במקביל: פרטי אירוע, me, רשומים
         const [ev, meRes, signupsRes] = await Promise.all([
           apiFetch(EVENT_DETAILS_ENDPOINT(eventId)),
           apiFetch("/api/me/"),
@@ -92,17 +125,45 @@ export default function VolunteerRating() {
         const list = asList(signupsRes);
         setSignups(list);
 
-        // אתחל state דירוג לכל נרשם/ת
+        // ✅ hydrate: טען דירוגים קיימים מהשרת
         setRatings((prev) => {
           const next = { ...prev };
+
           for (const s of list) {
-            if (!next[s.id]) next[s.id] = emptyRating();
+            const sid = s.id;
+
+            // אם יש מצב שהמשתמש התחיל לערוך לפני שהגיע השרת — לא נדרוס
+            if (next[sid] && (next[sid].saving || next[sid].error)) continue;
+
+            // אם אין — ניצור מהשרת
+            if (!next[sid]) {
+              next[sid] = hydrateFromServerSignup(s);
+              continue;
+            }
+
+            // אם יש אבל הוא ריק לגמרי (ברירת מחדל) — נעדכן מהשרת
+            // כדי לתפוס דירוגים קיימים בכניסה חוזרת
+            const wasEmpty =
+              !next[sid].role &&
+              !next[sid].hours &&
+              !next[sid].taskDesc &&
+              !next[sid].reliability &&
+              !next[sid].execution &&
+              !next[sid].teamwork &&
+              !next[sid].notes;
+
+            if (wasEmpty) {
+              next[sid] = hydrateFromServerSignup(s);
+            }
           }
+
           return next;
         });
       } catch (e) {
         if (!alive) return;
-        setLoadError(typeof e?.message === "string" ? e.message : "שגיאה בטעינת הדף");
+        setLoadError(
+          typeof e?.message === "string" ? e.message : "שגיאה בטעינת הדף"
+        );
       } finally {
         if (alive) setLoading(false);
       }
@@ -132,6 +193,7 @@ export default function VolunteerRating() {
       [signupId]: {
         ...(prev[signupId] || emptyRating()),
         ...patch,
+        // ✅ בעריכה אנחנו מסמנים שהמצב "לא שמור" עד שמבצעים שמירה מחדש
         saved: false,
         error: "",
       },
@@ -141,7 +203,8 @@ export default function VolunteerRating() {
   function validateOne(r) {
     if (!r.role) return "חובה לבחור תפקיד";
     if (!r.hours) return "חובה למלא שעות / נוכחות";
-    if (!r.reliability || !r.execution || !r.teamwork) return "חובה לדרג 1–5 בכל הקריטריונים";
+    if (!r.reliability || !r.execution || !r.teamwork)
+      return "חובה לדרג 1–5 בכל הקריטריונים";
     return "";
   }
 
@@ -155,33 +218,75 @@ export default function VolunteerRating() {
       return false;
     }
 
-    updateRating(sid, { saving: true, error: "" });
+    setRatings((prev) => ({
+      ...prev,
+      [sid]: {
+        ...(prev[sid] || emptyRating()),
+        saving: true,
+        error: "",
+      },
+    }));
 
     try {
+      // ✅ payload שמותאם ל-RateSignupSerializer שלך
       const payload = {
-        event: Number(eventId),
-        signup: sid,
-        // לא שולחים event_name / org_name — מיותר, השרת יודע לפי eventId
+        signup_id: sid,
         role: r.role,
         task_desc: r.taskDesc,
         hours: r.hours,
-        reliability: Number(r.reliability),
-        execution: Number(r.execution),
-        teamwork: Number(r.teamwork),
+        rating_reliability: Number(r.reliability),
+        rating_execution: Number(r.execution),
+        rating_teamwork: Number(r.teamwork),
         notes: r.notes,
-        // אם בכל זאת תרצי לשמור מי דירג:
-        rater_name: me?.full_name || me?.username || me?.email || undefined,
       };
 
-      await apiFetch(SAVE_RATING_ENDPOINT(), { method: "POST", body: payload });
+      const res = await apiFetch(SAVE_RATING_ENDPOINT(eventId), {
+        method: "POST",
+        body: payload,
+      });
 
-      updateRating(sid, { saving: false, saved: true });
+      // ✅ אחרי שמירה: נעדכן state לפי מה שהשרת החזיר (אם החזיר)
+      // אם השרת לא מחזיר את השדות האלה עדיין, עדיין נסמן saved true.
+      const nextPatch = {
+        saving: false,
+        saved: true,
+        error: "",
+      };
+
+      if (res && typeof res === "object") {
+        // אם החזרת ב-response את rating + rated_at:
+        if (res.rating != null) nextPatch.ratingAvg = res.rating;
+        if (res.rated_at != null) nextPatch.ratedAt = res.rated_at;
+
+        // אם החזרת גם את השדות עצמם (מומלץ) — ניישר קו
+        if (res.rating_reliability != null) nextPatch.reliability = String(res.rating_reliability);
+        if (res.rating_execution != null) nextPatch.execution = String(res.rating_execution);
+        if (res.rating_teamwork != null) nextPatch.teamwork = String(res.rating_teamwork);
+
+        if (res.role != null) nextPatch.role = res.role;
+        if (res.task_desc != null) nextPatch.taskDesc = res.task_desc;
+        if (res.hours != null) nextPatch.hours = res.hours;
+        if (res.notes != null) nextPatch.notes = res.notes;
+      }
+
+      setRatings((prev) => ({
+        ...prev,
+        [sid]: {
+          ...(prev[sid] || emptyRating()),
+          ...nextPatch,
+        },
+      }));
+
       return true;
     } catch (e) {
-      updateRating(sid, {
-        saving: false,
-        error: typeof e?.message === "string" ? e.message : "שמירה נכשלה",
-      });
+      setRatings((prev) => ({
+        ...prev,
+        [sid]: {
+          ...(prev[sid] || emptyRating()),
+          saving: false,
+          error: typeof e?.message === "string" ? e.message : "שמירה נכשלה",
+        },
+      }));
       return false;
     }
   }
@@ -189,7 +294,10 @@ export default function VolunteerRating() {
   const progress = useMemo(() => {
     const total = signups.length;
     if (!total) return { total: 0, done: 0, left: 0 };
-    const done = signups.reduce((acc, s) => acc + (ratings[s.id]?.saved ? 1 : 0), 0);
+    const done = signups.reduce(
+      (acc, s) => acc + (ratings[s.id]?.saved ? 1 : 0),
+      0
+    );
     return { total, done, left: Math.max(0, total - done) };
   }, [signups, ratings]);
 
@@ -197,8 +305,10 @@ export default function VolunteerRating() {
     if (!signups.length) return;
     setSavingAll(true);
 
-    // נשמור רק את מי שלא נשמר עדיין
+    // אם את רוצה לשמור תמיד את כולם (גם שכבר שמורים) כדי לעדכן — תשני את השורה הבאה:
+    // const targets = signups;
     const targets = signups.filter((s) => !ratings[s.id]?.saved);
+
     for (const s of targets) {
       // eslint-disable-next-line no-await-in-loop
       await saveOne(s);
@@ -272,8 +382,22 @@ export default function VolunteerRating() {
                     <div className="vrVolTop">
                       <div>
                         <div className="vrVolName">{title}</div>
+
                         <div className="vrVolSub">
-                          {r.saved ? <span className="vrOk">נשמר ✅</span> : <span className="vrPending">טרם נשמר</span>}
+                          {r.saved ? (
+                            <span className="vrOk">נשמר ✅</span>
+                          ) : (
+                            <span className="vrPending">טרם נשמר</span>
+                          )}
+
+                          {r.ratingAvg != null ? (
+                            <span className="vrMuted"> · ממוצע: {r.ratingAvg}</span>
+                          ) : null}
+
+                          {r.ratedAt ? (
+                            <span className="vrMuted"> · עודכן: {new Date(r.ratedAt).toLocaleString("he-IL")}</span>
+                          ) : null}
+
                           {r.error ? <span className="vrErr"> · {r.error}</span> : null}
                         </div>
                       </div>
@@ -294,7 +418,7 @@ export default function VolunteerRating() {
                           onClick={() => saveOne(s)}
                           disabled={r.saving}
                         >
-                          {r.saving ? "שומר…" : "שמור"}
+                          {r.saving ? "שומר…" : r.saved ? "עדכן" : "שמור"}
                         </button>
                       </div>
                     </div>
