@@ -1,3 +1,9 @@
+/* =========================
+   VolunTrack - style.css (stable)
+   No duplicate footer, safer globals, sticky footer
+   ========================= */
+
+/* ---------- Tokens ---------- */
 :root{
   --bg:#ffffff;
   --text:#0f172a;
@@ -13,7 +19,10 @@
   --radius: 22px;
 }
 
+/* ---------- Base / Reset ---------- */
 *{ box-sizing:border-box; }
+
+html, body{ height:100%; }
 
 body{
   margin:0;
@@ -22,12 +31,40 @@ body{
   color: var(--text);
 }
 
+/* ✅ Sticky footer foundation */
+#root{
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Layout helpers ---------- */
 .container{
   width: min(1100px, 100% - 32px);
   margin: 0 auto;
 }
 
-/* TOPBAR */
+.page{
+  flex: 1 0 auto;          /* ✅ makes footer stick to bottom */
+  padding: 42px 0 70px;
+}
+
+.pageTitle{
+  text-align:center;
+  margin: 10px 0 0;
+  font-weight:900;
+  font-size: 36px;
+}
+.pageSub{
+  text-align:center;
+  margin: 10px auto 0;
+  max-width: 850px;
+  color: var(--muted);
+  font-weight:700;
+  line-height:1.8;
+}
+
+/* ---------- Topbar ---------- */
 .topbar{
   position: sticky;
   top:0;
@@ -51,7 +88,11 @@ body{
 }
 .brand__dot{ color:#6366f1; }
 
-.nav{ display:flex; gap:14px; align-items:center; }
+.nav{
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
 
 /* Works with NavLink className="nav__link ..." */
 .nav__link{
@@ -62,7 +103,8 @@ body{
   border-radius:12px;
   white-space:nowrap;
 }
-.nav__link.active, .nav__link:hover{
+.nav__link.active,
+.nav__link:hover{
   color:var(--text);
   background:#f1f5f9;
 }
@@ -108,7 +150,23 @@ body{
   background:#f1f5f9;
 }
 
-/* BUTTONS */
+/* ✅ fix for when you use NavLink with className="nav__link" inside mobileNav */
+.mobileNav .nav__link{
+  display:block;
+  width:100%;
+  text-align:right; /* RTL */
+  background:transparent;
+  border:0;
+  padding:10px 16px;
+  color:var(--text);
+  font-weight:800;
+  border-radius:0;
+}
+.mobileNav .nav__link:hover{
+  background:#f1f5f9;
+}
+
+/* ---------- Buttons ---------- */
 .btn{
   display:inline-flex;
   align-items:center;
@@ -135,26 +193,23 @@ body{
   border-color: rgba(255,255,255,0.8);
 }
 
-.page{
-  padding: 42px 0 70px;
-}
-
-.pageTitle{
-  text-align:center;
-  margin: 10px 0 0;
+/* Small pill button */
+.btnSmall{
+  padding:10px 14px;
+  border-radius: 999px;
+  border:1px solid var(--line);
+  background:#fff;
   font-weight:900;
-  font-size: 36px;
+  text-decoration:none;
+  color: var(--text);
+  cursor:pointer;
 }
-.pageSub{
-  text-align:center;
-  margin: 10px auto 0;
-  max-width: 850px;
-  color: var(--muted);
-  font-weight:700;
-  line-height:1.8;
+.btnSmall:focus-visible{
+  outline: 3px solid rgba(45,212,191,.35);
+  outline-offset: 2px;
 }
 
-/* CARDS / BOX */
+/* ---------- Cards / Boxes ---------- */
 .box{
   background:#fff;
   border:1px solid var(--line);
@@ -169,6 +224,7 @@ body{
   grid-template-columns: repeat(3, 1fr);
   gap:16px;
 }
+
 .card{
   border-radius: 18px;
   background:#fff;
@@ -176,63 +232,19 @@ body{
   overflow:hidden;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
-.card__thumb{
-  height: 180px;
-  background:#eef2f7;
-}
+
 .card__body{ padding:14px; }
 .card__title{ margin:0; font-weight:900; font-size:16px; }
 .card__meta{ margin:8px 0 0; color:var(--muted); font-weight:700; font-size:13px; }
 .card__actions{ margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; }
-.btnSmall{
-  padding:10px 14px;
-  border-radius: 999px;
-  border:1px solid var(--line);
-  background:#fff;
-  font-weight:900;
-  text-decoration:none;
-  color: var(--text);
+
+/* ✅ Optional thumbnail (only if you render it) */
+.card__thumb{
+  height: 180px;
+  background:#eef2f7;
 }
 
-/* FOOTER */
-.footer{
-  background:#fff;
-  border-top:1px solid var(--line);
-}
-.footer__grid{
-  padding: 42px 0;
-  display:grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
-  gap:18px;
-  align-items:start;
-}
-.footer__text{
-  margin:10px 0 0;
-  color: var(--muted);
-  font-weight:700;
-  line-height:1.8;
-}
-.footer__title{
-  margin:0 0 10px;
-  font-weight:900;
-}
-.footer__link{
-  display:block;
-  text-decoration:none;
-  color: var(--muted);
-  font-weight:800;
-  padding:7px 0;
-}
-.footer__link:hover{ color:var(--text); }
-.footer__bottom{
-  border-top:1px solid var(--line);
-  padding:16px 0 22px;
-  color: var(--muted);
-  font-weight:700;
-  text-align:center;
-}
-
-/* Home sections */
+/* ---------- Home sections ---------- */
 .hero{
   padding:70px 0 60px;
   color:#fff;
@@ -262,6 +274,7 @@ body{
   margin-top:22px;
   flex-wrap:wrap;
 }
+
 .stats{
   margin-top: 42px;
   background:#fff;
@@ -305,6 +318,7 @@ body{
   text-decoration:none;
   white-space:nowrap;
 }
+
 .split{
   display:grid;
   grid-template-columns: 1.05fr 0.95fr;
@@ -324,6 +338,7 @@ body{
   min-height: 320px;
   background:#e5e7eb;
 }
+
 .pill{
   display:inline-block;
   padding:6px 10px;
@@ -335,6 +350,7 @@ body{
 }
 .split__title{ margin:12px 0 0; font-size: 34px; line-height:1.1; font-weight:900; }
 .split__desc{ margin:12px 0 0; color: var(--muted); font-weight:700; line-height:1.8; }
+
 .checks{
   list-style:none;
   padding:0;
@@ -359,6 +375,7 @@ body{
   color: var(--ok);
   flex: 0 0 auto;
 }
+
 .cta{
   background:
     radial-gradient(900px 350px at 50% 20%, rgba(255,255,255,0.12), transparent 60%),
@@ -376,14 +393,15 @@ body{
   line-height:1.8;
 }
 
-/* Dashboard */
+/* ---------- Dashboard (scoped) ---------- */
+/* ✅ keep these scoped so they don't mess other pages */
 .dashboard{
   display:grid;
   grid-template-columns: 1.6fr 0.9fr;
   gap:16px;
   margin-top: 22px;
 }
-.tabs{
+.dashboard .tabs{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
@@ -392,18 +410,19 @@ body{
   border-radius: 16px;
   background:#fff;
 }
-.tab{
+.dashboard .tab{
   padding:10px 12px;
   border-radius: 999px;
   border:1px solid var(--line);
   background:#fff;
   font-weight:900;
 }
-.tab.active{
+.dashboard .tab.active{
   background:#eef2ff;
   border-color:#c7d2fe;
   color:#3730a3;
 }
+
 .emptyState{
   margin-top:14px;
   padding:28px;
@@ -413,9 +432,8 @@ body{
   color: var(--muted);
   font-weight:800;
 }
-.kpi{
-  padding:16px;
-}
+
+.kpi{ padding:16px; }
 .score{
   width:64px;
   height:64px;
@@ -440,7 +458,7 @@ body{
 .kpiNum{ font-weight:900; font-size:18px; }
 .kpiLbl{ color:var(--muted); font-weight:800; font-size:12px; }
 
-/* ExploreEvents filters */
+/* ---------- Explore filters (scoped) ---------- */
 .filters{
   margin-top:18px;
   display:grid;
@@ -448,13 +466,15 @@ body{
   gap:12px;
   align-items:center;
 }
-.input, .select{
+.filters .input,
+.filters .select{
   width:100%;
   padding:12px 12px;
   border:1px solid var(--line);
   border-radius: 14px;
   font-weight:800;
 }
+
 .searchEmpty{
   margin-top: 26px;
   text-align:center;
@@ -470,7 +490,7 @@ body{
   font-size:26px;
 }
 
-/* EventDetails */
+/* ---------- EventDetails ---------- */
 .details{
   margin-top: 22px;
   display:grid;
@@ -501,72 +521,7 @@ body{
 }
 .list strong{ color: var(--text); }
 
-/* RESPONSIVE */
-@media (max-width: 920px){
-  .grid3{ grid-template-columns: 1fr; }
-  .split{ grid-template-columns: 1fr; }
-  .split__title{ font-size: 28px; }
-  .footer__grid{ grid-template-columns: 1fr; }
-  .dashboard{ grid-template-columns: 1fr; }
-  .details{ grid-template-columns: 1fr; }
-  .filters{ grid-template-columns: 1fr; }
-}
-
-@media (max-width: 760px){
-  .nav{ display:none; }
-  .burger{ display:inline-flex; }
-  .stats{ grid-template-columns: 1fr; }
-  .stat:not(:last-child){ border-left:none; border-bottom:1px solid var(--line); }
-  .hero{ padding:56px 0 44px; }
-  .cta__title{ font-size: 30px; }
-}
-.footer {
-  border-top: 1px solid var(--line, #e5e7eb);
-  background: #fff;
-  padding: 18px 0;
-  margin-top: auto;
-}
-
-.footer__inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  font-size: 14px;
-}
-
-.footer__copy {
-  color: #6b7280;
-}
-
-.footer__nav {
-  display: flex;
-  gap: 14px;
-}
-
-.footer__nav a {
-  color: #374151;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.footer__nav a:hover {
-  text-decoration: underline;
-}
-.mobileNav .nav__link{
-  display:block;
-  width:100%;
-  text-align:right; /* RTL */
-  background:transparent;
-  border:0;
-  padding:10px 16px;
-  color:var(--text);
-  font-weight:800;
-  border-radius:0;
-}
-.mobileNav .nav__link:hover{
-  background:#f1f5f9;
-}
+/* ---------- Home: signups pills + progress ---------- */
 .homeStatsRow{
   margin-top: 10px;
   display: flex;
@@ -575,53 +530,42 @@ body{
   flex-wrap: wrap;
 }
 
-/* Pill */
 .homeStatPill{
   display: inline-flex;
   align-items: center;
   gap: 6px;
-
   padding: 6px 10px;
   border-radius: 999px;
-
   border: 1px solid #e7eef7;
   background: #f8fbff;
-
   font-weight: 900;
   font-size: 12px;
   color: var(--muted);
 }
-
-/* מלא */
 .homeStatPill--full{
   background: rgba(239,68,68,.08);
   color: #991b1b;
   border-color: rgba(239,68,68,.22);
 }
 
-/* Progress container */
 .homeProgress{
   position: relative;
   height: 14px;
   min-width: 120px;
   flex: 1;
-
   border-radius: 999px;
   background: #eef2f7;
   overflow: hidden;
   border: 1px solid #e7eef7;
 }
-
-/* Progress bar */
 .homeProgress__bar{
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, var(--accent), #2c2e8f);
   border-radius: 999px;
   transition: width .35s ease;
+  min-width: 6px; /* ✅ prevents “super thin” bars when small percentage */
 }
-
-/* Label */
 .homeProgress__label{
   position: absolute;
   inset: 0;
@@ -632,11 +576,68 @@ body{
   color: #334155;
   pointer-events: none;
 }
-
-/* מלא */
 .homeProgress--full .homeProgress__bar{
   background: linear-gradient(90deg, #ef4444, #b91c1c);
 }
 .homeProgress--full .homeProgress__label{
   color: #7f1d1d;
+}
+
+/* ---------- Footer (ONE version) ---------- */
+.footer{
+  border-top: 1px solid var(--line);
+  background: #fff;
+  padding: 18px 0;
+  margin-top: auto; /* ✅ works with #root flex column */
+}
+.footer__inner{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+}
+.footer__copy{
+  color: var(--muted);
+  font-weight: 700;
+}
+.footer__nav{
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.footer__nav a{
+  color: #374151;
+  text-decoration: none;
+  font-weight: 800;
+}
+.footer__nav a:hover{
+  text-decoration: underline;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 920px){
+  .grid3{ grid-template-columns: 1fr; }
+  .split{ grid-template-columns: 1fr; }
+  .split__title{ font-size: 28px; }
+  .dashboard{ grid-template-columns: 1fr; }
+  .details{ grid-template-columns: 1fr; }
+  .filters{ grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px){
+  .nav{ display:none; }
+  .burger{ display:inline-flex; }
+  .stats{ grid-template-columns: 1fr; }
+  .stat:not(:last-child){
+    border-left:none;
+    border-bottom:1px solid var(--line);
+  }
+  .hero{ padding:56px 0 44px; }
+  .cta__title{ font-size: 30px; }
+
+  .footer__inner{
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
