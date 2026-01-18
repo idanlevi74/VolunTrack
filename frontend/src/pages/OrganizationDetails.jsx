@@ -463,7 +463,7 @@ export default function OrganizationDetails() {
 
                   {events.length > 0 ? (
                     <div style={{ marginTop: 10 }}>
-                      <Link className="btnSmall" to={`/explore?organization=${normalized.id}`}>
+                      <Link to={`/explore?org=${normalized.id}`}>
                         לכל האירועים של העמותה →
                       </Link>
                     </div>
