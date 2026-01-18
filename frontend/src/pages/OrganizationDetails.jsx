@@ -239,9 +239,9 @@ export default function OrganizationDetails() {
 
           // אצלך באירוע כנראה organization זה user id של העמותה
           items = items.filter((ev) => {
-            const orgId = ev.organization ?? ev.organization_id ?? ev.org_id ?? null;
-            return String(orgId ?? "") === String(normalized.id);
-          });
+          const orgProfileId = ev.org ?? ev.organization_profile ?? ev.organization_id ?? null;
+          return String(orgProfileId ?? "") === String(normalized.id);
+        });
         }
 
         // ✅ סינון “קרובים” + מיון + הגבלה
