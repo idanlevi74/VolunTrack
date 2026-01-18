@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from django.db.models import Avg
 
 from accounts.permissions import IsOrganization, IsVolunteer
+from orgs.models import OrganizationProfile
 from .models import Event, EventSignup
 from . import serializers as s
 
@@ -55,12 +56,14 @@ class EventViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Event.objects.all()
-        org_id = self.request.query_params.get("organization")
+        org_profile_id = self.request.query_params.get("org")
         status_param = self.request.query_params.get("status")
         today = timezone.localdate()
 
-        if org_id:
-            qs = qs.filter(organization_id=org_id)
+        if org_profile_id:
+            org_profile = get_object_or_404(OrganizationProfile, id=org_profile_id)
+            qs = qs.filter(organization_id=org_profile.user_id)
+
             if status_param == "upcoming":
                 return qs.filter(date__gte=today).order_by("date")
             if status_param == "history":
