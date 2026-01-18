@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import "../styles/style.css";
 import "../styles/event-details.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
