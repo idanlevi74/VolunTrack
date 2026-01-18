@@ -151,3 +151,52 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+/* =========================
+   Reports / Export box
+   ========================= */
+
+.dash .reports{
+  display: grid;
+  gap: 12px;
+}
+
+/* Header inside box */
+.dash .reportsTitle{
+  font-weight: 950;
+  font-size: 15px;
+}
+
+.dash .reportsSub{
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+/* Buttons container */
+.dash .reportsActions{
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* Buttons */
+.dash .reportsActions .btnSmall{
+  width: 100%;
+  justify-content: center;
+  font-weight: 900;
+}
+
+/* Loading state */
+.dash .reportsLoading{
+  font-weight: 900;
+  color: var(--muted);
+}
+
+/* Message / feedback */
+.dash .reportsMsg{
+  margin-top: 8px;
+  font-weight: 900;
+  font-size: 13px;
+  color: var(--muted);
+}

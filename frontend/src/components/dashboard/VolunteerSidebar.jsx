@@ -10,8 +10,10 @@ export default function VolunteerSidebar({
   loading,
   reportMsg,
 }) {
+  const isBusy = reportBusy || loading;
+
   return (
-    <aside style={{ display: "grid", gap: 16 }}>
+    <aside>
       <div className="box kpi">
         <div className="score">{score}</div>
         <h3 className="kpiTitle">דירוג אמינות</h3>
@@ -29,36 +31,30 @@ export default function VolunteerSidebar({
         </div>
       </div>
 
-      <div className="box boxPad">
-        <div style={{ fontWeight: 900, marginBottom: 8 }}>📊 דוחות</div>
-        <div style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.6 }}>
-          ייצוא לקובץ CSV (נפתח באקסל)
-        </div>
+      <div className="box boxPad reports">
+        <div className="reportsTitle">📊 דוחות</div>
+        <div className="reportsSub">ייצוא לקובץ CSV </div>
 
-        <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        <div className="reportsActions">
           <button
             className="btnSmall"
             type="button"
             onClick={exportVolunteerDonationsCsv}
-            disabled={reportBusy || loading}
+            disabled={isBusy}
           >
-            {reportBusy ? "מכין..." : "ייצוא דוח תרומות שתרמתי"}
+            {isBusy ? "מכין..." : "ייצוא דוח תרומות שתרמתי"}
           </button>
 
           <button
             className="btnSmall"
             type="button"
             onClick={exportVolunteerEventsHistoryCsv}
-            disabled={reportBusy || loading}
+            disabled={isBusy}
           >
-            {reportBusy ? "מכין..." : "ייצוא דוח אירועים שהשתתפתי + דירוג"}
+            {isBusy ? "מכין..." : "ייצוא דוח אירועים שהשתתפתי + דירוג"}
           </button>
 
-          {reportMsg ? (
-            <div style={{ marginTop: 8, fontWeight: 800, color: "var(--muted)" }}>
-              {reportMsg}
-            </div>
-          ) : null}
+          {reportMsg ? <div className="reportsMsg">{reportMsg}</div> : null}
         </div>
       </div>
     </aside>
