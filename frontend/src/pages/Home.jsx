@@ -221,8 +221,6 @@ export default function Home() {
 
                 return (
                   <article className="card" key={e.id}>
-                      <div className="card__thumb"></div>
-
                       <div className="card__body">
                         <h3 className="card__title">{e.title || "אירוע"}</h3>
                         <p className="card__meta">{meta || "תאריך • מיקום • עמותה"}</p>
