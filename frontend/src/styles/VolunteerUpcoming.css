@@ -1,0 +1,162 @@
+/* ===== VolunteerUpcoming (vu) ===== */
+.vu{
+  direction: rtl;
+}
+
+/* Grid cards */
+.vu .grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Card */
+.vu .card{
+  background: #fff;
+  border: 1px solid #e7eef7;
+  border-radius: 18px;
+  padding: 16px 16px 14px;
+  box-shadow:
+    0 14px 30px rgba(15, 23, 42, 0.08);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.vu .card::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(1200px 300px at 80% 0%, rgba(45,212,191,.18), transparent 45%);
+  pointer-events: none;
+}
+
+.vu .card:hover{
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 44px rgba(15, 23, 42, 0.12);
+  border-color: #d7e6fb;
+}
+
+/* Title */
+.vu .cardTitle{
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+/* Meta line – nicer “chips” feel */
+.vu .cardMeta{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Make each “piece” look like a pill using separator dots you already render */
+.vu .cardMeta{
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #e7eef7;
+  margin-bottom: 12px;
+}
+
+/* Actions */
+.vu .cardActions{
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+/* Buttons (Link + button share btnSmall class) */
+.vu .btnSmall{
+  appearance: none;
+  border: 1px solid #dbe7f7;
+  background: #f8fbff;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.vu .btnSmall:hover{
+  background: #eef7ff;
+  border-color: #cfe2ff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+}
+
+.vu .btnSmall:active{
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.vu .btnSmall:focus-visible{
+  outline: 3px solid rgba(45,212,191,.35);
+  outline-offset: 2px;
+}
+
+/* Primary-ish for "לפרטים" – just based on being the first action */
+.vu .cardActions .btnSmall:first-child{
+  background: linear-gradient(135deg, #2c2e8f, #3a2b7d);
+  border-color: transparent;
+  color: #fff;
+}
+.vu .cardActions .btnSmall:first-child:hover{
+  filter: brightness(1.05);
+}
+
+/* Danger-ish for cancel button (second action) */
+.vu .cardActions .btnSmall:nth-child(2){
+  background: #fff;
+  border-color: #ffd7d7;
+  color: #b91c1c;
+}
+.vu .cardActions .btnSmall:nth-child(2):hover{
+  background: #fff1f2;
+  border-color: #fecaca;
+}
+
+/* Disabled */
+.vu .btnSmall:disabled,
+.vu button.btnSmall[disabled]{
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Empty state */
+.vu .emptyState{
+  background: #fff;
+  border: 1px solid #e7eef7;
+  border-radius: 18px;
+  padding: 22px 18px;
+  text-align: center;
+  color: #334155;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+.vu .emptyState .btnSmall{
+  background: linear-gradient(135deg, #2c2e8f, #3a2b7d);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 980px){
+  .vu .grid{
+    grid-template-columns: 1fr;
+  }
+}

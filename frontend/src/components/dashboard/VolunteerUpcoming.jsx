@@ -1,6 +1,6 @@
 // src/components/dashboard/VolunteerUpcoming.jsx
 import { Link } from "react-router-dom";
-
+import "../styles/VolunteerUpcoming.css";
 export default function VolunteerUpcoming({
   upcoming,
   formatDateIL,
@@ -9,6 +9,7 @@ export default function VolunteerUpcoming({
 }) {
   if (!upcoming?.length) {
     return (
+        <div className="vu">
       <div className="emptyState">
         <div style={{ fontSize: 28, marginBottom: 10 }}>📅</div>
         אין פעילויות קרובות
@@ -20,10 +21,12 @@ export default function VolunteerUpcoming({
           </Link>
         </div>
       </div>
+      </div>
     );
   }
 
   return (
+      <div className="vu">
     <div className="grid">
       {upcoming.map((a) => (
         <div key={a.id} className="card">
@@ -50,6 +53,7 @@ export default function VolunteerUpcoming({
           </div>
         </div>
       ))}
+    </div>
     </div>
   );
 }
