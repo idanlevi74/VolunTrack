@@ -345,7 +345,24 @@ export default function ExploreEvents() {
                       {orgName} • {e.location} • {e.category}
                       {e.date ? ` • ${formatDate(e.date)}` : ""}
                     </div>
-
+                    <div className="exploreStatsRow">
+                      {Number.isFinite(Number(e?.needed_volunteers)) ? (
+                        <span
+                          className={`exploreStatPill ${
+                            Number(e?.needed_volunteers) > 0 && Number(e?.signups_count ?? 0) >= Number(e?.needed_volunteers)
+                              ? "exploreStatPill--full"
+                              : ""
+                          }`}
+                          title="נרשמו / נדרש"
+                        >
+                          👥 {Number(e?.signups_count ?? 0)}/{Number(e?.needed_volunteers)} רשומים
+                        </span>
+                      ) : (
+                        <span className="exploreStatPill" title="נרשמו">
+                          👥 {Number(e?.signups_count ?? 0)} רשומים
+                        </span>
+                      )}
+                    </div>
                     <div className="cardActions exploreCardActions">
                       <Link className="btnSmall exploreBtn" to={`/events/${e.id}`}>
                         לפרטים

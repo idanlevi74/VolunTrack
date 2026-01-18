@@ -248,3 +248,32 @@
     min-width: 0;
   }
 }
+.exploreStatsRow{
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exploreStatPill{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  border: 1px solid #e7eef7;
+  background: #f8fbff;
+
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* כשהאירוע מלא */
+.exploreStatPill--full{
+  background: rgba(239,68,68,.08);
+  color: #991b1b;
+  border-color: rgba(239,68,68,.22);
+}
