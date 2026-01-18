@@ -200,12 +200,11 @@ export default function VolunteerRating() {
   }
 
   function validateOne(r) {
-    if (!r.role) return "חובה לבחור תפקיד";
-    if (!r.hours) return "חובה למלא שעות / נוכחות";
-    if (!r.reliability || !r.execution || !r.teamwork)
-      return "חובה לדרג 1–5 בכל הקריטריונים";
-    return "";
+  if (!r.reliability || !r.execution || !r.teamwork) {
+    return "חובה לדרג 1–5 בכל הקריטריונים";
   }
+  return "";
+}
 
   async function saveOne(signup) {
     const sid = signup.id;
@@ -233,15 +232,17 @@ export default function VolunteerRating() {
     try {
       // ✅ payload שמותאם ל-RateSignupSerializer שלך
       const payload = {
-        signup_id: sid,
-        role: r.role,
-        task_desc: r.taskDesc,
-        hours: r.hours,
-        rating_reliability: Number(r.reliability),
-        rating_execution: Number(r.execution),
-        rating_teamwork: Number(r.teamwork),
-        notes: r.notes,
-      };
+          signup_id: sid,
+          rating_reliability: Number(r.reliability),
+          rating_execution: Number(r.execution),
+          rating_teamwork: Number(r.teamwork),
+        };
+
+        // אופציונלי – רק אם מולא:
+        if (r.role) payload.role = r.role;
+        if (r.hours) payload.hours = r.hours;
+        if (r.taskDesc) payload.task_desc = r.taskDesc;
+        if (r.notes) payload.notes = r.notes;
 
       const res = await apiFetch(SAVE_RATING_ENDPOINT(eventId), {
         method: "POST",
@@ -404,7 +405,11 @@ export default function VolunteerRating() {
                           {r.error ? <span className="vrErr"> · {r.error}</span> : null}
                         </div>
                       </div>
-
+                        {r.error ? (
+                          <div className="vrInlineError" role="alert">
+                            ⚠️ {r.error}
+                          </div>
+                        ) : null}
                       <div className="vrVolTopActions">
                         <button
                           type="button"
