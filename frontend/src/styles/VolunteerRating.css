@@ -1,5 +1,9 @@
-/* Scoped variables + reset to avoid leaking into the whole app */
+/* =========================
+   Volunteer Rating – SCOPED
+   ========================= */
+
 .vrPage{
+  /* Variables – מקומיים לדירוג בלבד */
   --vr-bg:#f6f7fb;
   --vr-card:#ffffff;
   --vr-text:#111827;
@@ -8,41 +12,52 @@
   --vr-focus:#2563eb;
   --vr-shadow: 0 10px 25px rgba(0,0,0,.06);
   --vr-radius: 16px;
-}
 
-.vrPage, .vrPage * , .vrPage *::before, .vrPage *::after{ box-sizing: border-box; }
-
-.vrPage{
   min-height: 100vh;
   background: var(--vr-bg);
   color: var(--vr-text);
   font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  direction: rtl;
 }
+
+.vrPage,
+.vrPage *{
+  box-sizing: border-box;
+}
+
+/* =========================
+   Layout
+   ========================= */
 
 .vrContainer{
   width: min(980px, 92vw);
   margin: 34px auto;
 }
 
+/* =========================
+   Header
+   ========================= */
+
 .vrHeader{
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
   gap: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 
 .vrH1{
   margin:0;
   font-size: clamp(22px, 2.6vw, 30px);
-  letter-spacing: .2px;
+  font-weight: 950;
 }
 
 .vrHint{
   margin: 6px 0 0;
   color: var(--vr-muted);
   font-size: 14px;
+  font-weight: 800;
 }
 
 .vrHeaderActions{
@@ -55,8 +70,45 @@
 .vrLink{
   color: var(--vr-focus);
   text-decoration: none;
-  font-weight: 800;
+  font-weight: 900;
 }
+
+.vrLink:hover{
+  text-decoration: underline;
+}
+
+/* =========================
+   Buttons
+   ========================= */
+
+.vrBtn{
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor:pointer;
+}
+
+.vrBtn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+.vrBtnPrimary{
+  background: var(--vr-focus);
+  color:#fff;
+}
+
+.vrBtnGhost{
+  background: transparent;
+  border: 1px solid var(--vr-border);
+  color: var(--vr-text);
+}
+
+/* =========================
+   Card + States
+   ========================= */
 
 .vrCard{
   background: var(--vr-card);
@@ -84,9 +136,13 @@
   margin-bottom: 10px;
 }
 
+/* =========================
+   List + Volunteer Card
+   ========================= */
+
 .vrList{
   display:grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .vrVolCard{
@@ -96,6 +152,8 @@
   padding: 14px;
   box-shadow: 0 6px 16px rgba(0,0,0,.04);
 }
+
+/* Top row */
 
 .vrVolTop{
   display:flex;
@@ -114,13 +172,29 @@
 .vrVolSub{
   margin-top: 4px;
   font-size: 13px;
-  color: var(--vr-muted);
   font-weight: 800;
 }
+
+/* Status text */
 
 .vrOk{ color:#065f46; }
 .vrPending{ color: var(--vr-muted); }
 .vrErr{ color:#b91c1c; }
+.vrMuted{ color: var(--vr-muted); }
+
+/* Inline error */
+
+.vrInlineError{
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(239,68,68,.25);
+  background: rgba(239,68,68,.06);
+  color: #991b1b;
+  font-weight: 900;
+}
+
+/* Actions */
 
 .vrVolTopActions{
   display:flex;
@@ -128,30 +202,9 @@
   align-items:center;
 }
 
-.vrBtn{
-  border: 0;
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 14px;
-  font-weight: 900;
-  cursor:pointer;
-}
-
-.vrBtn:disabled{
-  opacity:.6;
-  cursor:not-allowed;
-}
-
-.vrBtnPrimary{
-  background: var(--vr-focus);
-  color:#fff;
-}
-
-.vrBtnGhost{
-  background: transparent;
-  border: 1px solid var(--vr-border);
-  color: var(--vr-text);
-}
+/* =========================
+   Form Grid
+   ========================= */
 
 .vrGrid{
   display:grid;
@@ -165,6 +218,13 @@
   display:flex;
   flex-direction:column;
   gap: 8px;
+}
+
+.vrCol6{ grid-column: span 12; }
+.vrCol12{ grid-column: span 12; }
+
+@media (min-width: 760px){
+  .vrCol6{ grid-column: span 6; }
 }
 
 .vrField label{
@@ -199,6 +259,10 @@
   box-shadow: 0 0 0 4px rgba(37,99,235,.12);
 }
 
+/* =========================
+   Rating Section
+   ========================= */
+
 .vrSection{
   border-top: 1px solid var(--vr-border);
   padding-top: 12px;
@@ -217,6 +281,8 @@
   font-weight: 800;
 }
 
+/* Metrics */
+
 .vrMetrics{
   display:grid;
   grid-template-columns: repeat(12, 1fr);
@@ -231,11 +297,17 @@
   background: #fafafa;
 }
 
+@media (min-width: 760px){
+  .vrMetric{ grid-column: span 4; }
+}
+
 .vrMetricTitle{
   font-size: 14px;
   font-weight: 950;
   margin-bottom: 8px;
 }
+
+/* Scale */
 
 .vrScale{
   display:flex;
@@ -265,10 +337,4 @@
 .vrPill.isOn{
   border-color: rgba(37,99,235,.35);
   box-shadow: 0 0 0 4px rgba(37,99,235,.10);
-}
-
-@media (min-width: 760px){
-  .vrCol6{ grid-column: span 6; }
-  .vrCol12{ grid-column: span 12; }
-  .vrMetric{ grid-column: span 4; }
 }
