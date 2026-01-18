@@ -181,9 +181,12 @@
 }
 
 /* Buttons */
-.dash .reportsActions .btnSmall{
+dash .reportsActions .btnSmall{
   width: 100%;
+  display: inline-flex;      /* ✅ זה החלק שהיה חסר */
+  align-items: center;
   justify-content: center;
+  text-align: center;        /* ✅ גיבוי גם אם דפדפן מתנהג מוזר */
   font-weight: 900;
 }
 
@@ -200,3 +203,4 @@
   font-size: 13px;
   color: var(--muted);
 }
+.
