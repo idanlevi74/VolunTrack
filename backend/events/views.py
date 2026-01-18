@@ -55,6 +55,17 @@ class EventViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Event.objects.all()
+        org_id = self.request.query_params.get("organization")
+        status_param = self.request.query_params.get("status")
+        today = timezone.localdate()
+
+        if org_id:
+            qs = qs.filter(organization_id=org_id)
+            if status_param == "upcoming":
+                return qs.filter(date__gte=today).order_by("date")
+            if status_param == "history":
+                return qs.filter(date__lt=today).order_by("-date")
+            return qs.order_by("date")
 
         if not user or not user.is_authenticated:
             return qs

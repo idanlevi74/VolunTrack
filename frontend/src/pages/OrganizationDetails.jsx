@@ -50,6 +50,21 @@ function initials(text) {
   return words.map((w) => (w[0] ? w[0].toUpperCase() : "")).join("");
 }
 
+function formatDateIL(dateStr) {
+  if (!dateStr) return "";
+  try {
+    return new Intl.DateTimeFormat("he-IL", { dateStyle: "medium" }).format(new Date(dateStr));
+  } catch {
+    return dateStr;
+  }
+}
+
+function asList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload?.results && Array.isArray(payload.results)) return payload.results;
+  return [];
+}
+
 export default function OrganizationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -60,6 +75,8 @@ export default function OrganizationDetails() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [org, setOrg] = useState(null);
+
+  // ✅ אירועים של העמותה
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsErr, setEventsErr] = useState("");
   const [events, setEvents] = useState([]);
@@ -69,7 +86,8 @@ export default function OrganizationDetails() {
     () => ({
       id,
       org_name: "עמותה לדוגמה",
-      description: "תיאור קצר על העמותה ומה היא עושה. כאן יופיע מידע על המטרות, הפעילות וההשפעה שלה בקהילה.",
+      description:
+        "תיאור קצר על העמותה ומה היא עושה. כאן יופיע מידע על המטרות, הפעילות וההשפעה שלה בקהילה.",
       phone: "03-0000000",
       website: "https://example.org",
       email: "info@example.org",
@@ -94,7 +112,6 @@ export default function OrganizationDetails() {
         }
 
         // ✅ ציבורי: אין חובה בטוקן כדי לצפות בעמותה
-        // אם אין אצלך endpoint /api/organizations/:id/ זה ייכנס ל-fallback
         const data = await fetchJson(`/api/organizations/${id}/`, {
           token: token || undefined,
           signal: controller.signal,
@@ -111,7 +128,7 @@ export default function OrganizationDetails() {
             signal: controller.signal,
           });
 
-          const items = Array.isArray(list) ? list : list?.results || [];
+          const items = asList(list);
           const found = items.find((x) => String(x.id ?? x.pk ?? "") === String(id));
           if (!found) throw e;
 
@@ -141,6 +158,119 @@ export default function OrganizationDetails() {
 
     return { id: orgId, name, description, phone, website, email, city };
   }, [org, id]);
+
+  // ✅ טעינת אירועים קרובים של העמותה
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadOrgEvents() {
+      setEventsLoading(true);
+      setEventsErr("");
+
+      try {
+        if (!normalized?.id) return;
+
+        // דמו
+        if (!API_BASE) {
+          setEvents([
+            {
+              id: 101,
+              title: "חלוקת סלי מזון",
+              date: "2026-02-01",
+              time: "10:00",
+              location: "תל אביב",
+              city: "תל אביב",
+              needed_volunteers: 20,
+              org_name: normalized.name,
+            },
+            {
+              id: 102,
+              title: "איסוף תרומות ציוד",
+              date: "2026-02-10",
+              time: "17:30",
+              location: "רמת גן",
+              city: "רמת גן",
+              needed_volunteers: 12,
+              org_name: normalized.name,
+            },
+          ]);
+          return;
+        }
+
+        // אצלך בדjango כרגע אין פילטר organization מובנה לאורחים,
+        // אז ננסה כמה URL-ים נפוצים; אם אף אחד לא יעבוד נעשה fallback של list+filter בצד לקוח.
+        const todayStr = new Date().toISOString().slice(0, 10);
+
+        const tryUrls = [
+          // ✅ זה היעד הרצוי (אם תוסיפי בדjango תמיכה בפרמטר organization):
+          `/api/events/?organization=${normalized.id}&status=upcoming`,
+
+          // וריאציות נפוצות
+          `/api/events/?organization=${normalized.id}&date__gte=${todayStr}`,
+          `/api/events/?organization=${normalized.id}&upcoming=1`,
+          `/api/events/?status=upcoming&organization=${normalized.id}`,
+        ];
+
+        let payload = null;
+        let lastErr = null;
+
+        for (const url of tryUrls) {
+          try {
+            payload = await fetchJson(url, {
+              token: token || undefined,
+              signal: controller.signal,
+            });
+            lastErr = null;
+            break;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+
+        let items = payload ? asList(payload) : null;
+
+        // ✅ fallback: תביאי את כל האירועים ותסנני מקומית לפי organization=id
+        if (!items) {
+          const all = await fetchJson(`/api/events/`, {
+            token: token || undefined,
+            signal: controller.signal,
+          });
+          items = asList(all);
+
+          // אצלך באירוע כנראה organization זה user id של העמותה
+          items = items.filter((ev) => {
+            const orgId = ev.organization ?? ev.organization_id ?? ev.org_id ?? null;
+            return String(orgId ?? "") === String(normalized.id);
+          });
+        }
+
+        // ✅ סינון “קרובים” + מיון + הגבלה
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const upcoming = (items || [])
+          .filter((ev) => {
+            if (!ev?.date) return true;
+            const d = new Date(ev.date);
+            return d >= today;
+          })
+          .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
+          .slice(0, 6);
+
+        setEvents(upcoming);
+
+        // אם ניסינו URLs והם נכשלו, לא נציג שגיאה (כי הצלחנו fallback).
+        // אבל אם גם fallback נכשל -> נזרוק שגיאה למטה.
+      } catch (e) {
+        if (e?.name !== "AbortError") setEventsErr(e?.message || "שגיאה בטעינת אירועים");
+      } finally {
+        setEventsLoading(false);
+      }
+    }
+
+    loadOrgEvents();
+    return () => controller.abort();
+  }, [API_BASE, normalized?.id, normalized?.name, token]);
 
   const shareText = encodeURIComponent(`מצאתי עמותה ב-VolunTrack: ${normalized?.name || ""}`);
   const shareUrl = encodeURIComponent(window.location.href);
@@ -266,7 +396,6 @@ export default function OrganizationDetails() {
                     onClick={async () => {
                       try {
                         await navigator.clipboard.writeText(window.location.href);
-                        // בלי state הודעה כדי לשמור על “כמו EventDetails”
                         alert("🔗 הקישור הועתק!");
                       } catch {
                         alert("לא הצלחתי להעתיק את הקישור 😅");
@@ -275,6 +404,70 @@ export default function OrganizationDetails() {
                   >
                     העתקת קישור
                   </button>
+                </div>
+
+                {/* ✅ Upcoming events (בצד שמאל מתחת לתיאור) */}
+                <div style={{ marginTop: 16 }}>
+                  <div className="ed__panelTitle">אירועים קרובים</div>
+
+                  {eventsLoading ? (
+                    <div className="emptyState ed__loading" style={{ marginTop: 10 }}>
+                      <div className="ed__emoji">⏳</div>
+                      טוען אירועים...
+                    </div>
+                  ) : eventsErr ? (
+                    <div className="box boxPad ed__error" style={{ marginTop: 10 }}>
+                      <div className="ed__errorTitle">אופס 😅</div>
+                      <div className="ed__errorText">{eventsErr}</div>
+                    </div>
+                  ) : events.length === 0 ? (
+                    <p className="ed__desc" style={{ marginTop: 10 }}>
+                      כרגע אין אירועים קרובים לעמותה הזו — אבל זה בדרך 💪
+                    </p>
+                  ) : (
+                    <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                      {events.map((ev) => (
+                        <Link
+                          key={ev.id}
+                          to={`/events/${ev.id}`}
+                          className="box boxPad"
+                          style={{ textDecoration: "none", color: "inherit" }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              alignItems: "baseline",
+                            }}
+                          >
+                            <div style={{ fontWeight: 800 }}>{ev.title || "אירוע"}</div>
+                            <div style={{ fontSize: 13, opacity: 0.8 }}>
+                              {formatDateIL(ev.date)} {ev.time ? `• ${ev.time}` : ""}
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: 6, fontSize: 14, opacity: 0.9 }}>
+                            {ev.city ? `📍 ${ev.city}` : ev.location ? `📍 ${ev.location}` : null}
+                          </div>
+
+                          {typeof ev.needed_volunteers === "number" ? (
+                            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
+                              צריך מתנדבים: {ev.needed_volunteers}
+                            </div>
+                          ) : null}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+
+                  {events.length > 0 ? (
+                    <div style={{ marginTop: 10 }}>
+                      <Link className="btnSmall" to={`/explore?organization=${normalized.id}`}>
+                        לכל האירועים של העמותה →
+                      </Link>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -309,7 +502,6 @@ export default function OrganizationDetails() {
                   </div>
                 </div>
 
-                {/* עזרה קטנה אם רוצים */}
                 <div className="ed__quick" style={{ marginTop: 12 }}>
                   <div className="ed__quickTitle">לא מצאת מה חיפשת?</div>
                   <div className="ed__quickList">
