@@ -124,7 +124,6 @@ export default function VolunteerRating() {
 
         const list = asList(signupsRes);
         setSignups(list);
-        console.log("SIGNUPS IDS", list.map(x => x.id));
         // ✅ hydrate: טען דירוגים קיימים מהשרת
         setRatings((prev) => {
           const next = { ...prev };
@@ -210,6 +209,10 @@ export default function VolunteerRating() {
 
   async function saveOne(signup) {
     const sid = signup.id;
+    console.log("SAVE CLICK", {
+    sid,
+    volunteer: signup.volunteer_name,
+  });
     const r = ratings[sid] || emptyRating();
 
     const err = validateOne(r);
