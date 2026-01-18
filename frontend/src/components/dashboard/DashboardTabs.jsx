@@ -1,3 +1,5 @@
+import "../../styles/DashboardTabs.css";
+
 export default function DashboardTabs({ tabs, activeTab, setActiveTab, loading }) {
   return (
     <div className="tabs">

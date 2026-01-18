@@ -1,0 +1,99 @@
+/* ===== Dashboard Tabs ===== */
+.tabs{
+  direction: rtl;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+
+  padding: 12px;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #e7eef7;
+  box-shadow: 0 14px 32px rgba(15,23,42,0.10);
+  backdrop-filter: blur(8px);
+
+  /* אם יש מקום קטן – שלא יישבר מכוער */
+  flex-wrap: wrap;
+}
+
+/* base tab */
+.tab{
+  appearance: none;
+  border: 1px solid #dbe7f7;
+  background: #ffffff;
+  color: #0f172a;
+
+  font-weight: 800;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease,
+    border-color .15s ease,
+    background .15s ease,
+    color .15s ease;
+}
+
+.tab:hover{
+  background: #f6f9ff;
+  border-color: #cfe2ff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+}
+
+/* active tab (הצבעים של ההירו) */
+.tab.active{
+  border-color: transparent;
+  color: #ffffff;
+
+  background: linear-gradient(135deg, #2c2e8f 0%, #3a2b7d 55%, #2dd4bf 140%);
+  box-shadow:
+    0 18px 40px rgba(44,46,143,0.26),
+    0 8px 18px rgba(45,212,191,0.14);
+}
+
+.tab.active:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+/* focus accessibility */
+.tab:focus-visible{
+  outline: 3px solid rgba(45,212,191,0.38);
+  outline-offset: 3px;
+}
+
+/* disabled (כש-loading) */
+.tab:disabled{
+  opacity: .6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* nice subtle press */
+.tab:active{
+  transform: translateY(0);
+}
+
+/* Mobile */
+@media (max-width: 520px){
+  .tabs{
+    justify-content: stretch;
+    border-radius: 22px;
+    padding: 10px;
+  }
+  .tab{
+    flex: 1;
+    justify-content: center;
+  }
+}
