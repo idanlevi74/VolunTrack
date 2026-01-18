@@ -3,27 +3,41 @@
   direction: rtl;
 }
 
-/* הודעות */
-.explorePage .exploreNotice {
+/* הודעות (card-like) */
+.explorePage .exploreNotice{
+  background: #fff;
+  border: 1px solid #e7eef7;
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
   margin-bottom: 12px;
 }
+
 .explorePage .exploreNotice__title {
   font-weight: 900;
   margin-bottom: 6px;
+  color: #0f172a;
 }
+
 .explorePage .exploreNotice__text {
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.8;
-  color: var(--muted);
+  color: #64748b;
 }
+
 .explorePage .exploreNotice--ok {
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: rgba(34, 197, 94, 0.28);
 }
+
 .explorePage .exploreNotice--err {
-  border-color: rgba(239, 68, 68, 0.35);
+  border-color: rgba(239, 68, 68, 0.28);
 }
+
 .explorePage .exploreNotice__actions {
   margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* פילטרים: רספונסיבי ולא נתקע */
@@ -32,12 +46,37 @@
   grid-template-columns: 160px 160px 1fr;
   gap: 12px;
   align-items: center;
+
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #e7eef7;
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(8px);
 }
 
 @media (max-width: 700px) {
   .explorePage .exploreFilters {
     grid-template-columns: 1fr;
   }
+}
+
+/* inputs/selects בפילטרים (אם יש) */
+.explorePage .exploreFilters input,
+.explorePage .exploreFilters select{
+  width: 100%;
+  border: 1px solid #dbe7f7;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-weight: 700;
+  outline: none;
+}
+
+.explorePage .exploreFilters input:focus,
+.explorePage .exploreFilters select:focus{
+  border-color: #cfe2ff;
+  box-shadow: 0 0 0 3px rgba(45,212,191,0.20);
 }
 
 /* גריד כרטיסים יציב */
@@ -60,23 +99,62 @@
   }
 }
 
-/* כרטיס – שלא "ייכנסו" אחד בשני */
+/* כרטיס – "אוויר" כמו בדשבורד */
 .explorePage .exploreCard {
+  background: #fff;
+  border: 1px solid #e7eef7;
+  border-radius: 18px;
+  padding: 16px 16px 14px;
+
   display: flex;
   flex-direction: column;
   gap: 10px;
+
   min-width: 0;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  position: relative;
+  overflow: hidden;
+
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.explorePage .exploreCard::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(1200px 300px at 80% 0%, rgba(45,212,191,.16), transparent 45%);
+  pointer-events: none;
+}
+
+.explorePage .exploreCard:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+  border-color: #d7e6fb;
 }
 
 /* טקסטים ארוכים לא שוברים layout */
-/* שימי לב: פה הסכנה להתנגשות היא עם .cardTitle/.cardMeta הגלובליים,
-   לכן אנחנו מגבילים אותם רק כאשר הם בתוך .exploreCard בדף הזה */
-.explorePage .exploreCard .cardTitle,
-.explorePage .exploreCard .cardMeta {
+.explorePage .exploreCard .cardTitle{
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.explorePage .exploreCard .cardMeta{
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #e7eef7;
+  margin-bottom: 2px;
 }
 
 /* לב הבעיה: הכפתורים חייבים להיות flex + wrap */
@@ -88,12 +166,79 @@
   align-items: center;
 }
 
-/* כפתורים לא נמחצים ולא "מטפסים" */
+/* כפתורים pills כמו הקודמים */
 .explorePage .exploreBtn {
+  appearance: none;
+  border: 1px solid #dbe7f7;
+  background: #f8fbff;
+  color: #0f172a;
+
+  font-weight: 800;
+  font-size: 13px;
+  padding: 9px 12px;
+  border-radius: 999px;
+
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   flex: 0 0 auto;
   min-width: 96px;
   text-align: center;
   white-space: nowrap;
+
+  transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.explorePage .exploreBtn:hover{
+  background: #eef7ff;
+  border-color: #cfe2ff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+}
+
+.explorePage .exploreBtn:focus-visible{
+  outline: 3px solid rgba(45,212,191,0.35);
+  outline-offset: 2px;
+}
+
+.explorePage .exploreBtn:active{
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.explorePage .exploreBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Primary – סגול גרדיאנט כמו בדשבורד */
+.explorePage .exploreBtnPrimary {
+  background: linear-gradient(135deg, #2c2e8f, #3a2b7d);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 900;
+}
+
+.explorePage .exploreBtnPrimary:hover{
+  filter: brightness(1.05);
+}
+
+/* Danger – באותו סטייל (לא בלוק אדום שטוח מדי) */
+.explorePage .exploreBtnDanger {
+  background: #fff;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.explorePage .exploreBtnDanger:hover {
+  background: #fff1f2;
+  border-color: #fca5a5;
+  filter: none;
 }
 
 /* בנייד מאוד קטן – שני כפתורים יקפצו שורה במקום לחפוף */
@@ -102,25 +247,4 @@
     flex: 1 1 140px;
     min-width: 0;
   }
-}
-
-/* הדגשה עדינה לכפתור הראשי */
-.explorePage .exploreBtnPrimary {
-  font-weight: 900;
-}
-
-/* Danger */
-.explorePage .exploreBtnDanger {
-  background: #dc2626;
-  color: #fff;
-  border-color: #dc2626;
-}
-
-.explorePage .exploreBtnDanger:hover {
-  filter: brightness(0.95);
-}
-
-.explorePage .exploreBtnDanger:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
 }
