@@ -283,7 +283,7 @@
 /* Progress container */
 .exploreProgress{
   position: relative;
-  height: 10px;
+  height: 14px;
   min-width: 120px;
   flex: 1;
 
