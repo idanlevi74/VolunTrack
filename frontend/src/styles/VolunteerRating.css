@@ -1,4 +1,5 @@
-:root{
+/* Scoped variables + reset to avoid leaking into the whole app */
+.vrPage{
   --vr-bg:#f6f7fb;
   --vr-card:#ffffff;
   --vr-text:#111827;
@@ -9,7 +10,7 @@
   --vr-radius: 16px;
 }
 
-*{ box-sizing:border-box; }
+.vrPage, .vrPage * , .vrPage *::before, .vrPage *::after{ box-sizing: border-box; }
 
 .vrPage{
   min-height: 100vh;

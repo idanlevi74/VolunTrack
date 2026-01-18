@@ -248,7 +248,12 @@
     min-width: 0;
   }
 }
-.exploreStatsRow{
+
+/* =========================
+   Stats / Progress (scoped)
+   ========================= */
+
+.explorePage .exploreStatsRow{
   margin-top: 10px;
   display: flex;
   align-items: center;
@@ -257,7 +262,7 @@
 }
 
 /* Pill */
-.exploreStatPill{
+.explorePage .exploreStatPill{
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -274,14 +279,14 @@
 }
 
 /* מלא */
-.exploreStatPill--full{
+.explorePage .exploreStatPill--full{
   background: rgba(239,68,68,.08);
   color: #991b1b;
   border-color: rgba(239,68,68,.22);
 }
 
 /* Progress container */
-.exploreProgress{
+.explorePage .exploreProgress{
   position: relative;
   height: 14px;
   min-width: 120px;
@@ -294,7 +299,7 @@
 }
 
 /* Progress bar */
-.exploreProgress__bar{
+.explorePage .exploreProgress__bar{
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, var(--accent), #2c2e8f);
@@ -303,7 +308,7 @@
 }
 
 /* Label (אחוזים) */
-.exploreProgress__label{
+.explorePage .exploreProgress__label{
   position: absolute;
   inset: 0;
   display: grid;
@@ -315,8 +320,9 @@
 }
 
 /* Progress מלא */
-.exploreProgress--full .exploreProgress__bar{
+.explorePage .exploreProgress--full .exploreProgress__bar{
   background: linear-gradient(90deg, #ef4444, #b91c1c);
 }
-.exploreProgress--full .exploreProgress__label{
+.explorePage .exploreProgress--full .exploreProgress__label{
   color: #7f1d1d;
+}
