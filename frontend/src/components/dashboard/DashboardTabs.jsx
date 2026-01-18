@@ -2,6 +2,7 @@ import "../../styles/DashboardTabs.css";
 
 export default function DashboardTabs({ tabs, activeTab, setActiveTab, loading }) {
   return (
+      <div className="dt">
     <div className="tabs">
       {tabs.map((t) => (
         <button
@@ -15,6 +16,7 @@ export default function DashboardTabs({ tabs, activeTab, setActiveTab, loading }
           {t.label}
         </button>
       ))}
+    </div>
     </div>
   );
 }
