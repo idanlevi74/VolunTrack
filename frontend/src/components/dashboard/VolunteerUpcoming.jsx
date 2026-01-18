@@ -1,6 +1,6 @@
 // src/components/dashboard/VolunteerUpcoming.jsx
 import { Link } from "react-router-dom";
-import "../styles/VolunteerUpcoming.css";
+import "../../styles/VolunteerUpcoming.css";
 export default function VolunteerUpcoming({
   upcoming,
   formatDateIL,
