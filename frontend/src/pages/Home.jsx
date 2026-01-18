@@ -221,27 +221,48 @@ export default function Home() {
 
                 return (
                   <article className="card" key={e.id}>
-                    <div className="card__thumb"></div>
+                      <div className="card__thumb"></div>
 
-                    <div className="card__body">
-                      <h3 className="card__title">{e.title || "אירוע"}</h3>
-                      <p className="card__meta">{meta || "תאריך • מיקום • עמותה"}</p>
+                      <div className="card__body">
+                        <h3 className="card__title">{e.title || "אירוע"}</h3>
+                        <p className="card__meta">{meta || "תאריך • מיקום • עמותה"}</p>
 
-                      <div className="card__actions">
-                        <Link className="btnSmall" to={`/events/${e.id}`}>
-                          לפרטים
-                        </Link>
+                        {/* ✅ נרשמו / נדרש + progress (כמו באקספלור) */}
+                        {(() => {
+                          const signed = Number(e?.signups_count ?? 0);
+                          const needed = Number(e?.needed_volunteers ?? 0);
+                          const hasLimit = Number.isFinite(needed) && needed > 0;
+                          const pct = hasLimit ? Math.min(100, Math.round((signed / needed) * 100)) : 0;
+                          const isFull = hasLimit && signed >= needed;
 
-                        <button
-                          className="btnSmall"
-                          type="button"
-                          onClick={() => handleSignup(e.id)}
-                        >
-                          להרשמה
-                        </button>
+                          return (
+                            <div className="homeStatsRow">
+                              <span className={`homeStatPill ${isFull ? "homeStatPill--full" : ""}`} title="נרשמו / נדרש">
+                                👥 {signed}{hasLimit ? `/${needed}` : ""} רשומים{isFull ? " (מלא)" : ""}
+                              </span>
+
+                              {hasLimit && (
+                                <div className={`homeProgress ${isFull ? "homeProgress--full" : ""}`}>
+                                  <div className="homeProgress__bar" style={{ width: `${pct}%` }} aria-label={`התקדמות הרשמה: ${pct}%`} />
+                                  <span className="homeProgress__label">{pct}%</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        <div className="card__actions">
+                          <Link className="btnSmall" to={`/events/${e.id}`}>
+                            לפרטים
+                          </Link>
+
+                          <button className="btnSmall" type="button" onClick={() => handleSignup(e.id)}>
+                            להרשמה
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
+                    </article>
+
                 );
               })}
             </div>

@@ -567,3 +567,76 @@ mobileNav .nav__link{
 .mobileNav .nav__link:hover{
   background:#f1f5f9;
 }
+.homeStatsRow{
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Pill */
+.homeStatPill{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  border: 1px solid #e7eef7;
+  background: #f8fbff;
+
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* מלא */
+.homeStatPill--full{
+  background: rgba(239,68,68,.08);
+  color: #991b1b;
+  border-color: rgba(239,68,68,.22);
+}
+
+/* Progress container */
+.homeProgress{
+  position: relative;
+  height: 10px;
+  min-width: 120px;
+  flex: 1;
+
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+  border: 1px solid #e7eef7;
+}
+
+/* Progress bar */
+.homeProgress__bar{
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), #2c2e8f);
+  border-radius: 999px;
+  transition: width .35s ease;
+}
+
+/* Label */
+.homeProgress__label{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 900;
+  color: #334155;
+  pointer-events: none;
+}
+
+/* מלא */
+.homeProgress--full .homeProgress__bar{
+  background: linear-gradient(90deg, #ef4444, #b91c1c);
+}
+.homeProgress--full .homeProgress__label{
+  color: #7f1d1d;
+}
