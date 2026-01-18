@@ -1,19 +1,23 @@
 // src/components/dashboard/VolunteerHistory.jsx
 import { Link } from "react-router-dom";
+import "../../styles/VolunteerUpcoming.css";
 
 export default function VolunteerHistory({ history, formatDateIL }) {
   if (!history?.length) {
     return (
+         <div className="vu">
       <div className="emptyState">
         <div style={{ fontSize: 28, marginBottom: 10 }}>🕓</div>
         עדיין אין פעילויות שהיו
         <br />
         אחרי שתשתתפו בפעילות – היא תופיע כאן ✨
       </div>
+      </div>
     );
   }
 
   return (
+       <div className="vu">
     <div className="grid">
       {history.map((a) => (
         <div key={a.id} className="card">
@@ -35,6 +39,7 @@ export default function VolunteerHistory({ history, formatDateIL }) {
           </div>
         </div>
       ))}
+    </div>
     </div>
   );
 }

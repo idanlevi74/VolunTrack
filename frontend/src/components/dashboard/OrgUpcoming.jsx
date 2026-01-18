@@ -1,9 +1,10 @@
 // src/components/dashboard/OrgUpcoming.jsx
 import { Link } from "react-router-dom";
-
+import "../../styles/VolunteerUpcoming.css";
 export default function OrgUpcoming({ orgUpcoming, formatDateIL }) {
   if (!orgUpcoming?.length) {
     return (
+         <div className="vu">
       <div className="emptyState">
         <div style={{ fontSize: 28, marginBottom: 10 }}>📅</div>
         אין אירועים קרובים כרגע
@@ -15,10 +16,12 @@ export default function OrgUpcoming({ orgUpcoming, formatDateIL }) {
           </Link>
         </div>
       </div>
+      </div>
     );
   }
 
   return (
+       <div className="vu">
     <div className="grid">
       {orgUpcoming.map((a) => (
         <div key={a.id} className="card">
@@ -34,6 +37,7 @@ export default function OrgUpcoming({ orgUpcoming, formatDateIL }) {
           </div>
         </div>
       ))}
+    </div>
     </div>
   );
 }
