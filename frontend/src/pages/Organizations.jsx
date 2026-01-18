@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import "../styles/organizations.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -54,6 +55,13 @@ function pickDonationUrl(o) {
   );
 }
 
+function initials(text) {
+  const s = (text || "").trim();
+  if (!s) return "VT";
+  const words = s.split(/\s+/).slice(0, 2);
+  return words.map((w) => (w[0] ? w[0].toUpperCase() : "")).join("");
+}
+
 export default function Organizations() {
   // דף ציבורי: לא חובה טוקן. אם יש — נשתמש
   const token = localStorage.getItem("accessToken") || "";
@@ -69,23 +77,26 @@ export default function Organizations() {
         id: "demo-1",
         org_name: "עמותה לדוגמה",
         description: "תיאור קצר על העמותה ומה היא עושה",
-        phone: "",
-        website: "",
-        donation_url: "https://example.com/donate", // 👈 דמו
+        phone: "03-0000000",
+        website: "https://example.org",
+        city: "תל אביב",
+        donation_url: "https://example.com/donate",
       },
       {
         id: "demo-2",
-        org_name: "עמותה לדוגמה",
-        description: "תיאור קצר על העמותה ומה היא עושה",
+        org_name: "הלב לקהילה",
+        description: "מתנדבים, מחלקים, מחבקים. פשוט עושים טוב 💙",
         phone: "",
         website: "",
+        city: "חיפה",
       },
       {
         id: "demo-3",
-        org_name: "עמותה לדוגמה",
-        description: "תיאור קצר על העמותה ומה היא עושה",
-        phone: "",
-        website: "",
+        org_name: "חברים של כולם",
+        description: "שילוב חברתי דרך פעילויות קהילתיות בכל הארץ",
+        phone: "050-0000000",
+        website: "https://example.org",
+        city: "",
       },
     ],
     []
@@ -123,104 +134,125 @@ export default function Organizations() {
   }, [demo, token]);
 
   return (
-    <main className="page">
+    <main className="page orgs" dir="rtl">
       <div className="container">
-        <h1 className="pageTitle">עמותות וארגונים</h1>
-        <p className="pageSub">הכירו את הארגונים שעושים שינוי אמיתי בחברה הישראלית</p>
+        <header className="orgs__hero">
+          <div className="orgs__heroTop">
+            <div>
+              <h1 className="orgs__title">עמותות וארגונים</h1>
+              <p className="orgs__sub">הכירו את הארגונים שעושים שינוי אמיתי בחברה הישראלית</p>
+            </div>
+
+            <Link className="orgs__pillLink" to="/explore" title="מעבר להתנדבויות">
+              🧭 חיפוש התנדבות
+            </Link>
+          </div>
+
+          <div className="orgs__hintRow">
+            <span className="orgs__hint">טיפ: כנסי לפרטי עמותה כדי לראות אירועים קרובים ולתרום בקליק.</span>
+          </div>
+        </header>
 
         {err ? (
-          <div className="box boxPad" style={{ borderColor: "rgba(239,68,68,.35)" }}>
-            <div style={{ fontWeight: 900, marginBottom: 6 }}>אופס 😅</div>
-            <div style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.8 }}>{err}</div>
+          <div className="orgs__empty">
+            <div className="orgs__emptyEmoji">😅</div>
+            <div className="orgs__emptyTitle">אופס</div>
+            <div className="orgs__emptyText">{err}</div>
             <div style={{ marginTop: 12 }}>
-              <button className="btnSmall" type="button" onClick={() => window.location.reload()}>
+              <button className="orgs__btnSmall" type="button" onClick={() => window.location.reload()}>
                 נסי שוב
               </button>
             </div>
           </div>
         ) : loading ? (
-          <div className="emptyState">
-            <div style={{ fontSize: 28, marginBottom: 10 }}>⏳</div>
-            טוען עמותות...
+          <div className="orgs__empty">
+            <div className="orgs__emptyEmoji">⏳</div>
+            <div className="orgs__emptyText">טוען עמותות...</div>
           </div>
         ) : !orgs?.length ? (
-          <div className="emptyState">
-            <div style={{ fontSize: 28, marginBottom: 10 }}>🏢</div>
-            אין עמותות להצגה כרגע
-            <br />
-            <span style={{ display: "inline-block", marginTop: 8, color: "var(--muted)", fontWeight: 800 }}>
-              (ייתכן שה-DB ריק או שעדיין אין חיבור לשרת)
-            </span>
+          <div className="orgs__empty">
+            <div className="orgs__emptyEmoji">🏢</div>
+            <div className="orgs__emptyText">אין עמותות להצגה כרגע</div>
+            <div className="orgs__muted">(ייתכן שה-DB ריק או שעדיין אין חיבור לשרת)</div>
           </div>
         ) : (
-          <div className="grid3">
+          <section className="orgs__grid">
             {orgs.map((o) => {
               const id = o.id ?? o.pk ?? o.user ?? o.user_id ?? o.slug ?? null;
 
               const name = o.org_name || o.name || o.title || "עמותה";
-              const description = o.description || o.about || "—";
+              const description = o.description || o.about || "אין תיאור כרגע — אבל בטוח עושים טוב 😄";
 
               const phone = o.phone || "";
               const website = o.website || "";
+              const city = o.city || o.location || "";
 
               const detailsTo = id ? `/organizations/${id}` : null;
 
-              // ✅ תרומה
               const donationUrl = pickDonationUrl(o);
-              const donateToInternal = id ? `/donate/${id}` : "/donate"; // fallback
+              const donateToInternal = id ? `/donate/${id}` : "/donate";
+
+              const hasMeta = Boolean(city || phone || website);
 
               return (
-                <article className="card" key={String(id ?? name)}>
-                  <div className="card__thumb" />
-                  <div className="card__body">
-                    <h3 className="card__title">{name}</h3>
-                    <p className="card__meta">{description}</p>
+                <article className="orgs__card" key={String(id ?? name)}>
+                  <div className="orgs__cardTop">
+                    <div className="orgs__avatar" aria-hidden="true">
+                      {initials(name)}
+                    </div>
 
-                    {(phone || website) && (
-                      <div style={{ marginTop: 10, color: "var(--muted)", fontWeight: 800, lineHeight: 1.8 }}>
-                        {phone ? <div>טלפון: {phone}</div> : null}
-                        {website ? (
-                          <div>
-                            אתר:{" "}
-                            <a href={website} target="_blank" rel="noreferrer">
-                              {website}
+                    <div className="orgs__head">
+                      <h3 className="orgs__cardTitle">{name}</h3>
+
+                      {hasMeta ? (
+                        <div className="orgs__meta">
+                          {city ? <span className="orgs__chip">📍 {city}</span> : null}
+                          {phone ? <span className="orgs__chip">☎️ {phone}</span> : null}
+                          {website ? (
+                            <a className="orgs__chip orgs__chipLink" href={website} target="_blank" rel="noreferrer">
+                              🌐 אתר
                             </a>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-
-                    <div className="card__actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {detailsTo ? (
-                        <Link className="btnSmall" to={detailsTo}>
-                          לפרטי עמותה
-                        </Link>
+                          ) : null}
+                        </div>
                       ) : (
-                        <button className="btnSmall" type="button" disabled title="אין מזהה עמותה מה-DB">
-                          לפרטי עמותה
-                        </button>
-                      )}
-
-                      <Link className="btnSmall" to="/explore">
-                        למצוא התנדבות
-                      </Link>
-
-                      {/* ✅ כפתור תרומה */}
-                      {donationUrl ? (
-                        <a className="btnSmall" href={donationUrl} target="_blank" rel="noreferrer">
-                          לתרומה 💝
-                        </a>
-                      ) : (
-                        <Link className="btnSmall" to={donateToInternal}>
-                          לתרומה 💝
-                        </Link>
+                        <div className="orgs__meta">
+                          <span className="orgs__chip">✨ ארגון קהילתי</span>
+                        </div>
                       )}
                     </div>
+                  </div>
+
+                  <p className="orgs__desc">{description}</p>
+
+                  <div className="orgs__actions">
+                    {detailsTo ? (
+                      <Link className="orgs__btnSmall" to={detailsTo}>
+                        לפרטי עמותה
+                      </Link>
+                    ) : (
+                      <button className="orgs__btnSmall" type="button" disabled title="אין מזהה עמותה מה-DB">
+                        לפרטי עמותה
+                      </button>
+                    )}
+
+                    <Link className="orgs__btnSmall" to="/explore">
+                      למצוא התנדבות
+                    </Link>
+
+                    {donationUrl ? (
+                      <a className="orgs__btnSmall orgs__btnCta" href={donationUrl} target="_blank" rel="noreferrer">
+                        לתרומה 💝
+                      </a>
+                    ) : (
+                      <Link className="orgs__btnSmall orgs__btnCta" to={donateToInternal}>
+                        לתרומה 💝
+                      </Link>
+                    )}
                   </div>
                 </article>
               );
             })}
-          </div>
+          </section>
         )}
       </div>
     </main>
