@@ -553,7 +553,7 @@ body{
 .footer__nav a:hover {
   text-decoration: underline;
 }
-mobileNav .nav__link{
+.mobileNav .nav__link{
   display:block;
   width:100%;
   text-align:right; /* RTL */
