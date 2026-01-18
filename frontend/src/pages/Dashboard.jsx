@@ -1,5 +1,6 @@
 // src/pages/Dashboard.jsx
 import React, { useMemo } from "react";
+import "../styles/Dashboard.css";
 
 // components
 import DashboardTabs from "../components/dashboard/DashboardTabs";
@@ -95,7 +96,7 @@ export default function Dashboard() {
 
 
   return (
-    <main className="page">
+    <main className="page dash">
       <div className="container">
         <h1 className="pageTitle">שלום, {fullName}</h1>
         <p className="pageSub">ברוכים הבאים לאזור האישי שלך</p>
